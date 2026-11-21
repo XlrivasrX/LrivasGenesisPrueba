@@ -109,6 +109,9 @@ builder.Services.AddSwaggerGen(opciones =>
 
 var app = builder.Build();
 
+// Convierte las excepciones inesperadas en respuestas seguras y uniformes.
+app.UseMiddleware<ManejadorExcepcionesMiddleware>();
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
