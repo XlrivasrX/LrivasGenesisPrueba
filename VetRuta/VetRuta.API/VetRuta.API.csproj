@@ -7,16 +7,18 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.34" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\VetRuta.BusinessLogic\VetRuta.BusinessLogic.csproj" />
+    <ProjectReference Include="..\VetRuta.DataAccess\VetRuta.DataAccess.csproj" />
     <ProjectReference Include="..\VetRuta.Entities\VetRuta.Entities.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Controllers\" />
+    <Folder Include="wwwroot\evidencias\" />
   </ItemGroup>
 
 </Project>
