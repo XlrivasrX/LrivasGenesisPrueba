@@ -7,6 +7,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="BCrypt.Net-Next" Version="4.2.0" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.16.0" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\VetRuta.DataAccess\VetRuta.DataAccess.csproj" />
     <ProjectReference Include="..\VetRuta.Entities\VetRuta.Entities.csproj" />
   </ItemGroup>

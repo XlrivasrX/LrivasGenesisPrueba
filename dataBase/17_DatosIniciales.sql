@@ -19,6 +19,46 @@ IF NOT EXISTS (SELECT 1 FROM dbo.Roles WHERE Codigo = N'TECNICO')
     VALUES (N'TECNICO', N'Técnico', N'Realiza y registra las visitas a domicilio.');
 GO
 
+-- Usuario inicial para acceder a la aplicación
+DECLARE @RolRootId INT =
+(
+    SELECT RolId
+    FROM dbo.Roles
+    WHERE Codigo = N'ROOT'
+);
+
+IF NOT EXISTS
+(
+    SELECT 1
+    FROM dbo.Usuarios
+    WHERE NombreUsuario = N'root'
+)
+BEGIN
+    INSERT INTO dbo.Usuarios
+    (
+        RolId,
+        NombreUsuario,
+        ContrasenaHash,
+        Nombres,
+        Apellidos,
+        Correo,
+        Activo,
+        DebeCambiarContrasena
+    )
+    VALUES
+    (
+        @RolRootId,
+        N'root',
+        N'$2a$12$laJ9PZdttu/ZVB8hOR49wOEazoUx2mVB1lxEhSD.bvtgLYrEfjVFa',
+        N'Administrador',
+        N'Sistema',
+        N'root@vetruta.local',
+        1,
+        1
+    );
+END;
+GO
+
 -- Especies atendidas
 IF NOT EXISTS (SELECT 1 FROM dbo.Especies WHERE Nombre = N'Perro')
     INSERT INTO dbo.Especies (Nombre) VALUES (N'Perro');
