@@ -7,6 +7,7 @@ using VetRuta.DataAccess.Conexion;
 using VetRuta.DataAccess.Procedimientos;
 using VetRuta.Entities.Configuracion;
 using Microsoft.OpenApi.Models;
+using VetRuta.API.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -49,6 +50,10 @@ builder.Services.AddScoped<IPacienteServicio, PacienteServicio>();
 builder.Services.AddScoped<IAsignacionServicio, AsignacionServicio>();
 //Este es el servicio que asigna las visitas y las registra, un  te3cnico ve lkas de él, un medico tambien etc.
 builder.Services.AddScoped<IVisitaServicio, VisitaServicio>();
+//Registra el servicio que obtiene los datos del panel principal.
+builder.Services.AddScoped<IPanelServicio, PanelServicio>();
+// Registra el servicio encargado de consultar y guardar la bitácora de auditoría.
+builder.Services.AddScoped<IAuditoriaServicio, AuditoriaServicio>();
 
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -118,6 +123,9 @@ app.UseStaticFiles();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Registra automáticamente en la bitácora las operaciones exitosas que modifican información.
+app.UseMiddleware<AuditoriaMiddleware>();
 
 app.MapControllers();
 
