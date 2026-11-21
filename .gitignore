@@ -38,3 +38,6 @@ key.properties
 .vscode/
 .DS_Store
 Thumbs.db
+
+# Evidencias cargadas durante la ejecución
+VetRuta/VetRuta.API/wwwroot/evidencias/*
