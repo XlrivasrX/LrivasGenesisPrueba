@@ -35,6 +35,7 @@ builder.Services.AddSingleton(jwtConfiguracion);
 builder.Services.AddScoped<EjecutorProcedimientos>();
 builder.Services.AddScoped<IRolServicio, RolServicio>();
 builder.Services.AddScoped<IAutenticacionServicio, AutenticacionServicio>();
+builder.Services.AddScoped<IUsuarioServicio, UsuarioServicio>();
 
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
