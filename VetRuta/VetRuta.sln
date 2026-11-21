@@ -1,0 +1,40 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.12.35707.178 d17.12
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VetRuta.API", "VetRuta.API\VetRuta.API.csproj", "{65E3C984-C3E0-4F71-ABD8-79FF3329CABF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VetRuta.Entities", "VetRuta.Entities\VetRuta.Entities.csproj", "{4E0ECB1C-E7EE-48AE-8399-909AAC4CE58F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VetRuta.DataAccess", "VetRuta.DataAccess\VetRuta.DataAccess.csproj", "{0DF00762-9FC0-4463-A7D1-25BFB3142BD7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VetRuta.BusinessLogic", "VetRuta.BusinessLogic\VetRuta.BusinessLogic.csproj", "{1854D2C3-7EAF-42FC-B072-F6351FE58A09}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{65E3C984-C3E0-4F71-ABD8-79FF3329CABF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{65E3C984-C3E0-4F71-ABD8-79FF3329CABF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{65E3C984-C3E0-4F71-ABD8-79FF3329CABF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{65E3C984-C3E0-4F71-ABD8-79FF3329CABF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4E0ECB1C-E7EE-48AE-8399-909AAC4CE58F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4E0ECB1C-E7EE-48AE-8399-909AAC4CE58F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4E0ECB1C-E7EE-48AE-8399-909AAC4CE58F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4E0ECB1C-E7EE-48AE-8399-909AAC4CE58F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0DF00762-9FC0-4463-A7D1-25BFB3142BD7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0DF00762-9FC0-4463-A7D1-25BFB3142BD7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0DF00762-9FC0-4463-A7D1-25BFB3142BD7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0DF00762-9FC0-4463-A7D1-25BFB3142BD7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1854D2C3-7EAF-42FC-B072-F6351FE58A09}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1854D2C3-7EAF-42FC-B072-F6351FE58A09}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1854D2C3-7EAF-42FC-B072-F6351FE58A09}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1854D2C3-7EAF-42FC-B072-F6351FE58A09}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
