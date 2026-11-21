@@ -33,9 +33,22 @@ builder.Services.AddSingleton(
 
 builder.Services.AddSingleton(jwtConfiguracion);
 builder.Services.AddScoped<EjecutorProcedimientos>();
+//El servicio de roles
 builder.Services.AddScoped<IRolServicio, RolServicio>();
+//el servicio que auntentrica usuarios
 builder.Services.AddScoped<IAutenticacionServicio, AutenticacionServicio>();
+//El servicio de usuarios creados etc.
 builder.Services.AddScoped<IUsuarioServicio, UsuarioServicio>();
+//El servicio de las especies, razas etc.
+builder.Services.AddScoped<ICatalogoServicio, CatalogoServicio>();
+//Este es el servicio de los propiestarios de visitas
+builder.Services.AddScoped<IPropietarioServicio, PropietarioServicio>();
+//El servicio del registros de pacientes etc.
+builder.Services.AddScoped<IPacienteServicio, PacienteServicio>();
+//Este es el servicio que asigna pacientes a tecnicos y medicos
+builder.Services.AddScoped<IAsignacionServicio, AsignacionServicio>();
+//Este es el servicio que asigna las visitas y las registra, un  te3cnico ve lkas de él, un medico tambien etc.
+builder.Services.AddScoped<IVisitaServicio, VisitaServicio>();
 
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -99,6 +112,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// Permite consultar las imágenes guardadas en wwwroot.
+app.UseStaticFiles();
 
 app.UseAuthentication();
 app.UseAuthorization();
