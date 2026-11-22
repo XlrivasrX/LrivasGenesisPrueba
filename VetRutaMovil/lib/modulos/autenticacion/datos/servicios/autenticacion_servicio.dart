@@ -45,6 +45,24 @@ class AutenticacionServicio {
     }
   }
 
+  Future<void> cerrarSesion() async {
+    final tokenActualizacion =
+        await _almacenamientoSeguro.obtenerTokenActualizacion();
+
+    try {
+      if (tokenActualizacion != null && tokenActualizacion.isNotEmpty) {
+        await _clienteApi.dio.post<void>(
+          '/autenticacion/cerrar-sesion',
+          data: {
+            'tokenActualizacion': tokenActualizacion,
+          },
+        );
+      }
+    } finally {
+      await _almacenamientoSeguro.eliminarTokens();
+    }
+  }
+
   String _obtenerMensaje(DioException excepcion) {
     final datos = excepcion.response?.data;
 

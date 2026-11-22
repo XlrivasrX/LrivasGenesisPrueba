@@ -42,6 +42,22 @@ class AutenticacionControlador extends ChangeNotifier {
     }
   }
 
+  Future<void> cerrarSesion() async {
+  _cargando = true;
+  notifyListeners();
+
+    try {
+      await _servicio.cerrarSesion();
+    } catch (_) {
+    // La sesión local se elimina aunque el servidor no esté disponible.
+    } finally {
+      _usuario = null;
+      _mensajeError = null;
+      _cargando = false;
+      notifyListeners();
+    }
+  }
+
   void limpiarError() {
     _mensajeError = null;
     notifyListeners();

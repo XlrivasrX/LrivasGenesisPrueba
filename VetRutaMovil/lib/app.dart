@@ -8,6 +8,8 @@ import 'package:vetruta_movil/modulos/autenticacion/presentacion/controladores/a
 import 'package:vetruta_movil/modulos/autenticacion/presentacion/pantallas/inicio_sesion_pantalla.dart';
 import 'package:vetruta_movil/modulos/panel/datos/servicios/panel_servicio.dart';
 import 'package:vetruta_movil/modulos/panel/presentacion/controladores/panel_controlador.dart';
+import 'package:vetruta_movil/modulos/agenda/datos/servicios/agenda_servicio.dart';
+import 'package:vetruta_movil/modulos/agenda/presentacion/controladores/agenda_controlador.dart';
 
 class VetRutaApp extends StatelessWidget {
   const VetRutaApp({super.key});
@@ -44,6 +46,16 @@ class VetRutaApp extends StatelessWidget {
         ChangeNotifierProvider<PanelControlador>(
           create: (context) => PanelControlador(
             context.read<PanelServicio>(),
+          ),
+        ),
+        Provider<AgendaServicio>(
+          create: (context) => AgendaServicio(
+            context.read<ClienteApi>(),
+          ),
+        ),
+        ChangeNotifierProvider<AgendaControlador>(
+          create: (context) => AgendaControlador(
+            context.read<AgendaServicio>(),
           ),
         ),
       ],

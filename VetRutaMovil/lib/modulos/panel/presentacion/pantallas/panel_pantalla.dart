@@ -6,6 +6,11 @@ import 'package:vetruta_movil/modulos/panel/presentacion/widgets/grafica_visitas
 import 'package:vetruta_movil/modulos/panel/presentacion/widgets/tarjeta_cumplimiento.dart';
 import 'package:vetruta_movil/modulos/panel/presentacion/widgets/tarjeta_mascotas_atendidas.dart';
 import 'package:vetruta_movil/modulos/panel/presentacion/widgets/grafica_visitas_tecnico.dart';
+import 'package:vetruta_movil/modulos/autenticacion/presentacion/controladores/autenticacion_controlador.dart';
+import 'package:vetruta_movil/modulos/autenticacion/presentacion/pantallas/inicio_sesion_pantalla.dart';
+import 'package:vetruta_movil/modulos/panel/presentacion/pantallas/actividad_pantalla.dart';
+import 'package:vetruta_movil/modulos/panel/presentacion/pantallas/equipo_pantalla.dart';
+import 'package:vetruta_movil/modulos/panel/presentacion/pantallas/perfil_pantalla.dart';
 
 class PanelPantalla extends StatefulWidget {
   const PanelPantalla({super.key});
@@ -26,6 +31,21 @@ class _PanelPantallaState extends State<PanelPantalla> {
     });
   }
 
+  Future<void> _cerrarSesion() async {
+    await context.read<AutenticacionControlador>().cerrarSesion();
+
+    if (!mounted) {
+      return;
+    }
+
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute<void>(
+        builder: (_) => const InicioSesionPantalla(),
+      ),
+      (_) => false,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -40,8 +60,36 @@ class _PanelPantallaState extends State<PanelPantalla> {
           ),
         ],
       ),
-      body: Consumer<PanelControlador>(
-        builder: (context, controlador, _) {
+      body: Consumer2<PanelControlador, AutenticacionControlador>(
+        builder: (context, controlador, autenticacion, _) {
+          if (_indiceSeleccionado == 1) {
+            return ActividadPantalla(
+              datos: controlador.visitasPorFecha,
+              onActualizar: controlador.cargarPanel,
+            );
+          }
+
+          if (_indiceSeleccionado == 2) {
+            return EquipoPantalla(
+              tecnicos: controlador.visitasPorTecnico,
+              onActualizar: controlador.cargarPanel,
+            );
+          }
+
+          if (_indiceSeleccionado == 3) {
+            final usuario = autenticacion.usuario;
+
+            if (usuario == null) {
+              return const SizedBox.shrink();
+            }
+
+            return PerfilPantalla(
+              usuario: usuario,
+              cerrandoSesion: autenticacion.cargando,
+              onCerrarSesion: _cerrarSesion,
+            );
+          }
+
           final resumen = controlador.resumen;
 
           if (controlador.cargando && resumen == null) {

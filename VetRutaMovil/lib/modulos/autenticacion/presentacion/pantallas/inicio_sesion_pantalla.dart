@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:vetruta_movil/core/tema/colores_app.dart';
 import 'package:vetruta_movil/modulos/autenticacion/presentacion/controladores/autenticacion_controlador.dart';
 import 'package:vetruta_movil/modulos/panel/presentacion/pantallas/panel_pantalla.dart';
+import 'package:vetruta_movil/modulos/agenda/presentacion/pantallas/agenda_pantalla.dart';
 
 class InicioSesionPantalla extends StatefulWidget {
   const InicioSesionPantalla({super.key});
@@ -52,6 +53,15 @@ class _InicioSesionPantallaState extends State<InicioSesionPantalla> {
     if (codigoRol == 'ROOT' || codigoRol == 'DIRECTOR') {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute<void>(builder: (_) => const PanelPantalla()),
+      );
+      return;
+    }
+
+    if (codigoRol == 'TECNICO' || codigoRol == 'MEDICO') {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute<void>(
+          builder: (_) => const AgendaPantalla(),
+        ),
       );
       return;
     }
