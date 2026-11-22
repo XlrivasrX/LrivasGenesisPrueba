@@ -702,6 +702,41 @@ BEGIN
           AND U.Activo = 1;
     END
 
+    -- Opción 25: consultar las mascotas atendidas agrupadas por especie
+    ELSE IF @Opcion = 25
+    BEGIN
+        SELECT
+            E.EspecieId,
+            E.Nombre AS NombreEspecie,
+            COUNT(DISTINCT V.PacienteId) AS CantidadMascotas
+        FROM dbo.Especies E
+        INNER JOIN dbo.Pacientes P ON P.EspecieId = E.EspecieId
+        INNER JOIN dbo.Visitas V ON V.PacienteId = P.PacienteId
+        INNER JOIN dbo.RegistrosVisitas RV ON RV.VisitaId = V.VisitaId
+        WHERE (@FechaDesde IS NULL OR V.FechaProgramada >= @FechaDesde)
+          AND (@FechaHasta IS NULL OR V.FechaProgramada < DATEADD(DAY, 1, @FechaHasta))
+        GROUP BY E.EspecieId, E.Nombre
+        ORDER BY E.Nombre;
+    END
+
+    -- Opción 26: consultar las visitas agrupadas por técnico
+    ELSE IF @Opcion = 26
+    BEGIN
+        SELECT
+            U.UsuarioId AS TecnicoUsuarioId,
+            LTRIM(RTRIM(CONCAT(U.Nombres, ' ', U.Apellidos))) AS NombreTecnico,
+            COUNT(V.VisitaId) AS CantidadVisitas,
+            SUM(CASE WHEN RV.RegistroVisitaId IS NOT NULL THEN 1 ELSE 0 END) AS Completadas,
+            SUM(CASE WHEN RV.RegistroVisitaId IS NULL THEN 1 ELSE 0 END) AS Programadas
+        FROM dbo.Visitas V
+        INNER JOIN dbo.Usuarios U ON U.UsuarioId = V.TecnicoUsuarioId
+        LEFT JOIN dbo.RegistrosVisitas RV ON RV.VisitaId = V.VisitaId
+        WHERE (@FechaDesde IS NULL OR V.FechaProgramada >= @FechaDesde)
+          AND (@FechaHasta IS NULL OR V.FechaProgramada < DATEADD(DAY, 1, @FechaHasta))
+        GROUP BY U.UsuarioId, U.Nombres, U.Apellidos
+        ORDER BY CantidadVisitas DESC, NombreTecnico;
+    END
+
     ELSE
     BEGIN
         THROW 50001, N'La opción indicada no existe en SP_VetRuta_Consultas.', 1;

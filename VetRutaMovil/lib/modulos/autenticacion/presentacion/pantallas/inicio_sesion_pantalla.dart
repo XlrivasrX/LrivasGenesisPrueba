@@ -1,5 +1,8 @@
+import 'package:provider/provider.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:vetruta_movil/core/tema/colores_app.dart';
+import 'package:vetruta_movil/modulos/autenticacion/presentacion/controladores/autenticacion_controlador.dart';
+import 'package:vetruta_movil/modulos/panel/presentacion/pantallas/panel_pantalla.dart';
 
 class InicioSesionPantalla extends StatefulWidget {
   const InicioSesionPantalla({super.key});
@@ -22,14 +25,56 @@ class _InicioSesionPantallaState extends State<InicioSesionPantalla> {
     super.dispose();
   }
 
-  void _iniciarSesion() {
+  Future<void> _iniciarSesion() async {
     if (_formularioKey.currentState?.validate() != true) {
       return;
+    }
+
+    FocusScope.of(context).unfocus();
+
+    final controlador = context.read<AutenticacionControlador>();
+    final inicioExitoso = await controlador.iniciarSesion(
+      _usuarioController.text,
+      _contrasenaController.text,
+    );
+
+    if (!mounted || !inicioExitoso) {
+      return;
+    }
+
+    final usuario = controlador.usuario;
+    if (usuario == null) {
+      return;
+    }
+
+    final codigoRol = usuario.codigoRol.toUpperCase();
+
+    if (codigoRol == 'ROOT' || codigoRol == 'DIRECTOR') {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute<void>(builder: (_) => const PanelPantalla()),
+      );
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'La pantalla para el rol ${usuario.nombreRol} se implementará próximamente.',
+        ),
+      ),
+    );
+  }
+
+  void _limpiarError(String _) {
+    final controlador = context.read<AutenticacionControlador>();
+    if (controlador.mensajeError != null) {
+      controlador.limpiarError();
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final controlador = context.watch<AutenticacionControlador>();
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -48,10 +93,11 @@ class _InicioSesionPantallaState extends State<InicioSesionPantalla> {
                     Text(
                       'Bienvenido',
                       textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        color: ColoresApp.azulOscuro,
-                        fontWeight: FontWeight.w800,
-                      ),
+                      style: Theme.of(context).textTheme.headlineMedium
+                          ?.copyWith(
+                            color: ColoresApp.azulOscuro,
+                            fontWeight: FontWeight.w800,
+                          ),
                     ),
                     const SizedBox(height: 8),
                     const Text(
@@ -76,6 +122,8 @@ class _InicioSesionPantallaState extends State<InicioSesionPantalla> {
                             ? 'Ingresa tu usuario.'
                             : null;
                       },
+                      onChanged: _limpiarError,
+                      enabled: !controlador.cargando,
                     ),
                     const SizedBox(height: 18),
                     TextFormField(
@@ -88,11 +136,13 @@ class _InicioSesionPantallaState extends State<InicioSesionPantalla> {
                         etiqueta: 'Contraseña',
                         icono: Icons.lock_outline,
                         sufijo: IconButton(
-                          onPressed: () {
-                            setState(() {
-                              _ocultarContrasena = !_ocultarContrasena;
-                            });
-                          },
+                          onPressed: controlador.cargando
+                              ? null
+                              : () {
+                                  setState(() {
+                                    _ocultarContrasena = !_ocultarContrasena;
+                                  });
+                                },
                           icon: Icon(
                             _ocultarContrasena
                                 ? Icons.visibility_outlined
@@ -105,12 +155,58 @@ class _InicioSesionPantallaState extends State<InicioSesionPantalla> {
                             ? 'Ingresa tu contraseña.'
                             : null;
                       },
+                      onChanged: _limpiarError,
+                      enabled: !controlador.cargando,
                     ),
                     const SizedBox(height: 28),
+                    if (controlador.mensajeError != null) ...[
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: ColoresApp.coral.withValues(alpha: 0.10),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: ColoresApp.coral.withValues(alpha: 0.35),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.error_outline,
+                              color: ColoresApp.coral,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                controlador.mensajeError!,
+                                style: const TextStyle(
+                                  color: ColoresApp.coral,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
                     FilledButton.icon(
-                      onPressed: _iniciarSesion,
-                      icon: const Icon(Icons.login),
-                      label: const Text('Iniciar sesión'),
+                      onPressed: controlador.cargando ? null : _iniciarSesion,
+                      icon: controlador.cargando
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(Icons.login),
+                      label: Text(
+                        controlador.cargando
+                            ? 'Ingresando...'
+                            : 'Iniciar sesión',
+                      ),
                     ),
                     const SizedBox(height: 40),
                     const Text(
@@ -140,18 +236,10 @@ class _InicioSesionPantallaState extends State<InicioSesionPantalla> {
           child: Stack(
             alignment: Alignment.center,
             children: [
-              Icon(
-                Icons.location_on,
-                size: 76,
-                color: ColoresApp.coral,
-              ),
+              Icon(Icons.location_on, size: 76, color: ColoresApp.coral),
               Positioned(
                 top: 17,
-                child: Icon(
-                  Icons.pets,
-                  size: 27,
-                  color: Colors.white,
-                ),
+                child: Icon(Icons.pets, size: 27, color: Colors.white),
               ),
             ],
           ),

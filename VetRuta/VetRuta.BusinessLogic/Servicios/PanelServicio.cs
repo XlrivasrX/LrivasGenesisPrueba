@@ -9,6 +9,8 @@ public class PanelServicio : IPanelServicio
     private const int OpcionResumenGeneral = 20;
     private const int OpcionVisitasPorServicio = 21;
     private const int OpcionVisitasPorFecha = 22;
+    private const int OpcionMascotasAtendidas = 25;
+    private const int OpcionVisitasPorTecnico = 26;
 
     private readonly EjecutorProcedimientos _ejecutorProcedimientos;
 
@@ -19,17 +21,27 @@ public class PanelServicio : IPanelServicio
 
     public async Task<ResumenPanelDto?> ObtenerResumenAsync(PanelFiltroDto filtros)
     {
-        return await _ejecutorProcedimientos.ConsultarUnoAsync<ResumenPanelDto>(OpcionResumenGeneral,CrearParametros(filtros));
+        return await _ejecutorProcedimientos.ConsultarUnoAsync<ResumenPanelDto>(OpcionResumenGeneral, CrearParametros(filtros));
     }
 
     public async Task<IEnumerable<VisitasPorServicioDto>> ObtenerVisitasPorServicioAsync(PanelFiltroDto filtros)
     {
-        return await _ejecutorProcedimientos.ConsultarListaAsync<VisitasPorServicioDto>(OpcionVisitasPorServicio,CrearParametros(filtros));
+        return await _ejecutorProcedimientos.ConsultarListaAsync<VisitasPorServicioDto>(OpcionVisitasPorServicio, CrearParametros(filtros));
     }
 
     public async Task<IEnumerable<VisitasPorFechaDto>> ObtenerVisitasPorFechaAsync(PanelFiltroDto filtros)
     {
-        return await _ejecutorProcedimientos.ConsultarListaAsync<VisitasPorFechaDto>(OpcionVisitasPorFecha,CrearParametros(filtros));
+        return await _ejecutorProcedimientos.ConsultarListaAsync<VisitasPorFechaDto>(OpcionVisitasPorFecha, CrearParametros(filtros));
+    }
+
+    public async Task<IEnumerable<MascotasAtendidasDto>> ObtenerMascotasAtendidasAsync(PanelFiltroDto filtros)
+    {
+        return await _ejecutorProcedimientos.ConsultarListaAsync<MascotasAtendidasDto>(OpcionMascotasAtendidas, CrearParametros(filtros));
+    }
+
+    public async Task<IEnumerable<VisitasPorTecnicoDto>> ObtenerVisitasPorTecnicoAsync(PanelFiltroDto filtros)
+    {
+        return await _ejecutorProcedimientos.ConsultarListaAsync<VisitasPorTecnicoDto>(OpcionVisitasPorTecnico, CrearParametros(filtros));
     }
 
     private static object CrearParametros(PanelFiltroDto filtros)

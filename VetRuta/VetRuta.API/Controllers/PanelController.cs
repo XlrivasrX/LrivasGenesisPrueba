@@ -59,6 +59,34 @@ public class PanelController : ControllerBase
         return Ok(visitas);
     }
 
+    [HttpGet("mascotas-atendidas")]
+    [ProducesResponseType(typeof(IEnumerable<MascotasAtendidasDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<IEnumerable<MascotasAtendidasDto>>> ObtenerMascotasAtendidas([FromQuery] PanelFiltroDto filtros)
+    {
+        if (!FechasValidas(filtros))
+        {
+            return BadRequest(new { mensaje = "La fecha inicial no puede ser mayor que la fecha final." });
+        }
+
+        var mascotas = await _panelServicio.ObtenerMascotasAtendidasAsync(filtros);
+        return Ok(mascotas);
+    }
+
+    [HttpGet("visitas-por-tecnico")]
+    [ProducesResponseType(typeof(IEnumerable<VisitasPorTecnicoDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<IEnumerable<VisitasPorTecnicoDto>>> ObtenerVisitasPorTecnico([FromQuery] PanelFiltroDto filtros)
+    {
+        if (!FechasValidas(filtros))
+        {
+            return BadRequest(new { mensaje = "La fecha inicial no puede ser mayor que la fecha final." });
+        }
+
+        var visitas = await _panelServicio.ObtenerVisitasPorTecnicoAsync(filtros);
+        return Ok(visitas);
+    }
+
     private static bool FechasValidas(PanelFiltroDto filtros)
     {
         return filtros.FechaDesde is null

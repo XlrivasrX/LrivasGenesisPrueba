@@ -119,7 +119,11 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+// Redirige las solicitudes a HTTPS fuera del ambiente local de desarrollo.
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 // Permite consultar las imágenes guardadas en wwwroot.
 app.UseStaticFiles();
