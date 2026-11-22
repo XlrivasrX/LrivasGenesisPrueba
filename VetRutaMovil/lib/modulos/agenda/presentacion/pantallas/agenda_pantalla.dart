@@ -8,6 +8,7 @@ import 'package:vetruta_movil/modulos/autenticacion/presentacion/pantallas/inici
 import 'package:vetruta_movil/modulos/panel/presentacion/pantallas/perfil_pantalla.dart';
 import 'package:vetruta_movil/modulos/agenda/presentacion/pantallas/mapa_pantalla.dart';
 import 'package:vetruta_movil/modulos/agenda/presentacion/pantallas/pacientes_pantalla.dart';
+import 'package:vetruta_movil/modulos/agenda/presentacion/pantallas/detalle_visita_pantalla.dart';
 
 class AgendaPantalla extends StatefulWidget {
   const AgendaPantalla({super.key});
@@ -36,10 +37,83 @@ class _AgendaPantallaState extends State<AgendaPantalla> {
     }
 
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute<void>(
-        builder: (_) => const InicioSesionPantalla(),
-      ),
+      MaterialPageRoute<void>(builder: (_) => const InicioSesionPantalla()),
       (_) => false,
+    );
+  }
+
+  Future<void> _seleccionarVisitaParaRegistrar(
+    AgendaControlador controlador,
+  ) async {
+    final pendientes = controlador.visitasSeleccionadas
+        .where((visita) => !visita.completada)
+        .toList();
+
+    if (pendientes.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'No hay visitas pendientes para la fecha seleccionada.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    AgendaVisita? visitaSeleccionada;
+
+    if (pendientes.length == 1) {
+      visitaSeleccionada = pendientes.first;
+    } else {
+      visitaSeleccionada = await showModalBottomSheet<AgendaVisita>(
+        context: context,
+        showDragHandle: true,
+        builder: (context) {
+          return SafeArea(
+            child: ListView(
+              shrinkWrap: true,
+              padding: const EdgeInsets.only(bottom: 16),
+              children: [
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(20, 8, 20, 12),
+                  child: Text(
+                    'Selecciona una visita',
+                    style: TextStyle(
+                      color: ColoresApp.azulOscuro,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                ...pendientes.map(
+                  (visita) => ListTile(
+                    leading: const CircleAvatar(
+                      child: Icon(Icons.pets_rounded),
+                    ),
+                    title: Text(visita.nombrePaciente),
+                    subtitle: Text(visita.nombreServicio),
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () {
+                      Navigator.of(context).pop(visita);
+                    },
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+    }
+
+    if (!mounted || visitaSeleccionada == null) {
+      return;
+    }
+
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) =>
+            DetalleVisitaPantalla(visitaId: visitaSeleccionada!.visitaId),
+      ),
     );
   }
 
@@ -59,11 +133,21 @@ class _AgendaPantallaState extends State<AgendaPantalla> {
           ],
         ),
       ),
-      body: _construirSeccion(
-        context,
-        controlador,
-        autenticacion,
-      ),
+      body: _construirSeccion(context, controlador, autenticacion),
+      floatingActionButton: _indiceSeleccionado == 0
+          ? FloatingActionButton.extended(
+              onPressed: controlador.cargando
+                  ? null
+                  : () => _seleccionarVisitaParaRegistrar(controlador),
+              backgroundColor: ColoresApp.verdePrincipal,
+              foregroundColor: Colors.white,
+              icon: const Icon(Icons.add_rounded),
+              label: const Text(
+                'Registrar visita',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+            )
+          : null,
       bottomNavigationBar: NavigationBar(
         selectedIndex: _indiceSeleccionado,
         onDestinationSelected: (indice) {
@@ -134,11 +218,8 @@ class _AgendaPantallaState extends State<AgendaPantalla> {
 
     return Column(
       children: [
-        if (controlador.cargando)
-          const LinearProgressIndicator(minHeight: 3),
-        Expanded(
-          child: _construirContenido(context, controlador),
-        ),
+        if (controlador.cargando) const LinearProgressIndicator(minHeight: 3),
+        Expanded(child: _construirContenido(context, controlador)),
       ],
     );
   }
@@ -166,9 +247,7 @@ class _AgendaPantallaState extends State<AgendaPantalla> {
     AgendaControlador controlador,
   ) {
     if (controlador.cargando && controlador.visitas.isEmpty) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
+      return const Center(child: CircularProgressIndicator());
     }
 
     if (controlador.mensajeError != null && controlador.visitas.isEmpty) {
@@ -289,87 +368,69 @@ class _AgendaPantallaState extends State<AgendaPantalla> {
 }
 
 class _SelectorSemana extends StatelessWidget {
-  const _SelectorSemana({
-    required this.controlador,
-  });
+  const _SelectorSemana({required this.controlador});
 
   final AgendaControlador controlador;
 
   @override
   Widget build(BuildContext context) {
-    const nombresDias = [
-      'Lun',
-      'Mar',
-      'Mié',
-      'Jue',
-      'Vie',
-      'Sáb',
-      'Dom',
-    ];
+    const nombresDias = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
     return Row(
-      children: List.generate(
-        controlador.fechasSemana.length,
-        (indice) {
-          final fecha = controlador.fechasSemana[indice];
-          final seleccionada = _mismaFecha(
-            fecha,
-            controlador.fechaSeleccionada,
-          );
+      children: List.generate(controlador.fechasSemana.length, (indice) {
+        final fecha = controlador.fechasSemana[indice];
+        final seleccionada = _mismaFecha(fecha, controlador.fechaSeleccionada);
 
-          return Expanded(
-            child: Padding(
-              padding: EdgeInsets.only(
-                right: indice == 6 ? 0 : 5,
-              ),
-              child: InkWell(
-                onTap: () => controlador.seleccionarFecha(fecha),
-                borderRadius: BorderRadius.circular(12),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  padding: const EdgeInsets.symmetric(vertical: 9),
-                  decoration: BoxDecoration(
+        return Expanded(
+          child: Padding(
+            padding: EdgeInsets.only(right: indice == 6 ? 0 : 5),
+            child: InkWell(
+              onTap: () => controlador.seleccionarFecha(fecha),
+              borderRadius: BorderRadius.circular(12),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                padding: const EdgeInsets.symmetric(vertical: 9),
+                decoration: BoxDecoration(
+                  color: seleccionada
+                      ? ColoresApp.verdePrincipal
+                      : ColoresApp.superficie,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
                     color: seleccionada
                         ? ColoresApp.verdePrincipal
-                        : ColoresApp.superficie,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: seleccionada
-                          ? ColoresApp.verdePrincipal
-                          : ColoresApp.borde,
+                        : ColoresApp.borde,
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      nombresDias[indice],
+                      style: TextStyle(
+                        color: seleccionada
+                            ? Colors.white
+                            : ColoresApp.textoSecundario,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                  child: Column(
-                    children: [
-                      Text(
-                        nombresDias[indice],
-                        style: TextStyle(
-                          color: seleccionada
-                              ? Colors.white
-                              : ColoresApp.textoSecundario,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                        ),
+                    const SizedBox(height: 4),
+                    Text(
+                      fecha.day.toString(),
+                      style: TextStyle(
+                        color: seleccionada
+                            ? Colors.white
+                            : ColoresApp.azulOscuro,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        fecha.day.toString(),
-                        style: TextStyle(
-                          color: seleccionada
-                              ? Colors.white
-                              : ColoresApp.azulOscuro,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),
-          );
-        },
-      ),
+          ),
+        );
+      }),
     );
   }
 
@@ -381,9 +442,7 @@ class _SelectorSemana extends StatelessWidget {
 }
 
 class _TarjetaVisita extends StatelessWidget {
-  const _TarjetaVisita({
-    required this.visita,
-  });
+  const _TarjetaVisita({required this.visita});
 
   final AgendaVisita visita;
 
@@ -392,126 +451,130 @@ class _TarjetaVisita extends StatelessWidget {
     final colorEstado = visita.completada
         ? ColoresApp.exito
         : visita.atrasada
-            ? ColoresApp.coral
-            : ColoresApp.amarillo;
+        ? ColoresApp.coral
+        : ColoresApp.amarillo;
 
     final textoEstado = visita.completada
         ? 'Realizada'
         : visita.atrasada
-            ? 'Atrasada'
-            : 'Pendiente';
+        ? 'Atrasada'
+        : 'Pendiente';
 
-    return Container(
-      decoration: BoxDecoration(
-        color: ColoresApp.superficie,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: ColoresApp.borde),
-      ),
-      child: IntrinsicHeight(
-        child: Row(
-          children: [
-            Container(
-              width: 5,
-              decoration: BoxDecoration(
-                color: colorEstado,
-                borderRadius: const BorderRadius.horizontal(
-                  left: Radius.circular(16),
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => DetalleVisitaPantalla(visitaId: visita.visitaId),
+          ),
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: ColoresApp.superficie,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: ColoresApp.borde),
+        ),
+        child: IntrinsicHeight(
+          child: Row(
+            children: [
+              Container(
+                width: 5,
+                decoration: BoxDecoration(
+                  color: colorEstado,
+                  borderRadius: const BorderRadius.horizontal(
+                    left: Radius.circular(16),
+                  ),
                 ),
               ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(14),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: colorEstado.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(14),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: colorEstado.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Icon(Icons.pets_rounded, color: colorEstado),
                       ),
-                      child: Icon(
-                        Icons.pets_rounded,
-                        color: colorEstado,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            visita.nombrePaciente,
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleMedium
-                                ?.copyWith(
-                                  color: ColoresApp.azulOscuro,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            visita.nombreServicio,
-                            style: const TextStyle(
-                              color: ColoresApp.textoSecundario,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              visita.nombrePaciente,
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(
+                                    color: ColoresApp.azulOscuro,
+                                    fontWeight: FontWeight.w800,
+                                  ),
                             ),
-                          ),
-                          const SizedBox(height: 7),
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.schedule_outlined,
-                                size: 16,
+                            const SizedBox(height: 2),
+                            Text(
+                              visita.nombreServicio,
+                              style: const TextStyle(
                                 color: ColoresApp.textoSecundario,
                               ),
-                              const SizedBox(width: 4),
-                              Text(
-                                _formatearHora(visita.fechaProgramada),
-                                style: const TextStyle(
-                                  color: ColoresApp.textoPrincipal,
-                                  fontWeight: FontWeight.w600,
+                            ),
+                            const SizedBox(height: 7),
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.schedule_outlined,
+                                  size: 16,
+                                  color: ColoresApp.textoSecundario,
                                 ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  _formatearHora(visita.fechaProgramada),
+                                  style: const TextStyle(
+                                    color: ColoresApp.textoPrincipal,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 9,
+                              vertical: 5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: colorEstado.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              textoEstado,
+                              style: TextStyle(
+                                color: colorEstado,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
                               ),
-                            ],
+                            ),
+                          ),
+                          const Spacer(),
+                          const Icon(
+                            Icons.chevron_right_rounded,
+                            color: ColoresApp.textoSecundario,
                           ),
                         ],
                       ),
-                    ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 9,
-                            vertical: 5,
-                          ),
-                          decoration: BoxDecoration(
-                            color: colorEstado.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            textoEstado,
-                            style: TextStyle(
-                              color: colorEstado,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                        const Spacer(),
-                        const Icon(
-                          Icons.chevron_right_rounded,
-                          color: ColoresApp.textoSecundario,
-                        ),
-                      ],
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -526,9 +589,7 @@ class _TarjetaVisita extends StatelessWidget {
 }
 
 class _MensajeError extends StatelessWidget {
-  const _MensajeError({
-    required this.mensaje,
-  });
+  const _MensajeError({required this.mensaje});
 
   final String mensaje;
 
@@ -542,10 +603,7 @@ class _MensajeError extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(
-            Icons.error_outline_rounded,
-            color: ColoresApp.coral,
-          ),
+          const Icon(Icons.error_outline_rounded, color: ColoresApp.coral),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
@@ -580,10 +638,7 @@ class _AgendaVacia extends StatelessWidget {
           Text(
             'No hay visitas programadas para este día.',
             textAlign: TextAlign.center,
-            style: TextStyle(
-              color: ColoresApp.textoSecundario,
-              fontSize: 16,
-            ),
+            style: TextStyle(color: ColoresApp.textoSecundario, fontSize: 16),
           ),
         ],
       ),
@@ -592,10 +647,7 @@ class _AgendaVacia extends StatelessWidget {
 }
 
 class _EstadoError extends StatelessWidget {
-  const _EstadoError({
-    required this.mensaje,
-    required this.onReintentar,
-  });
+  const _EstadoError({required this.mensaje, required this.onReintentar});
 
   final String mensaje;
   final Future<void> Function() onReintentar;
@@ -614,10 +666,7 @@ class _EstadoError extends StatelessWidget {
               color: ColoresApp.coral,
             ),
             const SizedBox(height: 12),
-            Text(
-              mensaje,
-              textAlign: TextAlign.center,
-            ),
+            Text(mensaje, textAlign: TextAlign.center),
             const SizedBox(height: 16),
             FilledButton.icon(
               onPressed: onReintentar,

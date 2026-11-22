@@ -10,6 +10,7 @@ import 'package:vetruta_movil/modulos/panel/datos/servicios/panel_servicio.dart'
 import 'package:vetruta_movil/modulos/panel/presentacion/controladores/panel_controlador.dart';
 import 'package:vetruta_movil/modulos/agenda/datos/servicios/agenda_servicio.dart';
 import 'package:vetruta_movil/modulos/agenda/presentacion/controladores/agenda_controlador.dart';
+import 'package:vetruta_movil/modulos/pacientes/datos/servicios/paciente_servicio.dart';
 
 class VetRutaApp extends StatelessWidget {
   const VetRutaApp({super.key});
@@ -50,6 +51,12 @@ class VetRutaApp extends StatelessWidget {
         ),
         Provider<AgendaServicio>(
           create: (context) => AgendaServicio(
+            context.read<ClienteApi>(),
+          ),
+        ),
+        // Proporciona las consultas de información detallada de pacientes.
+        Provider<PacienteServicio>(
+          create: (context) => PacienteServicio(
             context.read<ClienteApi>(),
           ),
         ),

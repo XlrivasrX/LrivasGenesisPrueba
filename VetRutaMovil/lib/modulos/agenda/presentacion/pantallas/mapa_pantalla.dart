@@ -3,12 +3,9 @@ import 'package:latlong2/latlong.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:vetruta_movil/core/tema/colores_app.dart';
 import 'package:vetruta_movil/modulos/agenda/datos/modelos/agenda_visita.dart';
+import 'package:vetruta_movil/modulos/agenda/presentacion/pantallas/detalle_visita_pantalla.dart';
 
-enum _FiltroMapa {
-  todos,
-  pendientes,
-  atrasadas,
-}
+enum _FiltroMapa { todos, pendientes, atrasadas }
 
 class MapaPantalla extends StatefulWidget {
   const MapaPantalla({
@@ -37,80 +34,67 @@ class _MapaPantallaState extends State<MapaPantalla> {
     }
 
     final puntos = visitasConUbicacion
-        .map(
-          (visita) => LatLng(
-            visita.latitud!,
-            visita.longitud!,
-          ),
-        )
+        .map((visita) => LatLng(visita.latitud!, visita.longitud!))
         .toList();
 
-    final proximaVisita = _obtenerProximaVisita(
-      visitasConUbicacion,
-    );
+    final proximaVisita = _obtenerProximaVisita(visitasConUbicacion);
 
     return Stack(
       children: [
         FlutterMap(
-          options: MapOptions(
-            initialCenter: puntos.first,
-            initialZoom: 14,
-          ),
+          options: MapOptions(initialCenter: puntos.first, initialZoom: 14),
           children: [
             TileLayer(
-              urlTemplate:
-                  'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
               userAgentPackageName: 'com.lrivas.vetruta_movil',
             ),
             if (puntos.length > 1)
               PolylineLayer(
                 polylines: [
-                  Polyline(
-                    points: puntos,
-                    strokeWidth: 5,
-                    color: Colors.blue,
-                  ),
+                  Polyline(points: puntos, strokeWidth: 5, color: Colors.blue),
                 ],
               ),
             MarkerLayer(
-              markers: visitasConUbicacion.map(
-                (visita) {
-                  final color = visita.completada
-                      ? ColoresApp.exito
-                      : visita.atrasada
-                          ? ColoresApp.coral
-                          : ColoresApp.amarillo;
+              markers: visitasConUbicacion.map((visita) {
+                final color = visita.completada
+                    ? ColoresApp.exito
+                    : visita.atrasada
+                    ? ColoresApp.coral
+                    : ColoresApp.amarillo;
 
-                  return Marker(
-                    point: LatLng(
-                      visita.latitud!,
-                      visita.longitud!,
-                    ),
-                    width: 52,
-                    height: 52,
-                    child: Tooltip(
-                      message: visita.nombrePaciente,
+                return Marker(
+                  point: LatLng(visita.latitud!, visita.longitud!),
+                  width: 52,
+                  height: 52,
+                  child: Tooltip(
+                    message: visita.nombrePaciente,
+                    child: InkWell(
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => DetalleVisitaPantalla(
+                              visitaId: visita.visitaId,
+                            ),
+                          ),
+                        );
+                      },
+                      customBorder: const CircleBorder(),
                       child: Icon(
                         Icons.location_on_rounded,
                         size: 48,
                         color: color,
                         shadows: const [
-                          Shadow(
-                            color: Colors.black26,
-                            blurRadius: 6,
-                          ),
+                          Shadow(color: Colors.black26, blurRadius: 6),
                         ],
                       ),
                     ),
-                  );
-                },
-              ).toList(),
+                  ),
+                );
+              }).toList(),
             ),
             RichAttributionWidget(
               attributions: const [
-                TextSourceAttribution(
-                  'OpenStreetMap contributors',
-                ),
+                TextSourceAttribution('OpenStreetMap contributors'),
               ],
             ),
           ],
@@ -124,10 +108,7 @@ class _MapaPantallaState extends State<MapaPantalla> {
             elevation: 3,
             borderRadius: BorderRadius.circular(24),
             child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 8,
-                vertical: 6,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
               child: Row(
                 children: [
                   Expanded(
@@ -180,9 +161,7 @@ class _MapaPantallaState extends State<MapaPantalla> {
             left: 12,
             right: 12,
             bottom: 16,
-            child: _TarjetaProximaVisita(
-              visita: proximaVisita,
-            ),
+            child: _TarjetaProximaVisita(visita: proximaVisita),
           ),
       ],
     );
@@ -203,21 +182,15 @@ class _MapaPantallaState extends State<MapaPantalla> {
     }
   }
 
-  AgendaVisita? _obtenerProximaVisita(
-    List<AgendaVisita> visitas,
-  ) {
+  AgendaVisita? _obtenerProximaVisita(List<AgendaVisita> visitas) {
     final pendientes = visitas.where((visita) {
       return !visita.completada;
     }).toList();
 
     if (pendientes.isNotEmpty) {
-      pendientes.sort(
-        (primera, segunda) {
-          return primera.fechaProgramada.compareTo(
-            segunda.fechaProgramada,
-          );
-        },
-      );
+      pendientes.sort((primera, segunda) {
+        return primera.fechaProgramada.compareTo(segunda.fechaProgramada);
+      });
 
       return pendientes.first;
     }
@@ -249,10 +222,7 @@ class _FiltroBoton extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(18),
       child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 8,
-          vertical: 8,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
         decoration: BoxDecoration(
           color: seleccionado
               ? color.withValues(alpha: 0.14)
@@ -274,9 +244,7 @@ class _FiltroBoton extends StatelessWidget {
 }
 
 class _TarjetaProximaVisita extends StatelessWidget {
-  const _TarjetaProximaVisita({
-    required this.visita,
-  });
+  const _TarjetaProximaVisita({required this.visita});
 
   final AgendaVisita visita;
 
@@ -286,59 +254,69 @@ class _TarjetaProximaVisita extends StatelessWidget {
       color: ColoresApp.superficie,
       elevation: 4,
       borderRadius: BorderRadius.circular(18),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Row(
-          children: [
-            Container(
-              width: 46,
-              height: 46,
-              decoration: BoxDecoration(
-                color: ColoresApp.amarillo.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(13),
-              ),
-              child: const Icon(
-                Icons.pets_rounded,
-                color: ColoresApp.amarillo,
-              ),
+      child: InkWell(
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => DetalleVisitaPantalla(visitaId: visita.visitaId),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Próxima visita',
-                    style: TextStyle(
-                      color: ColoresApp.textoSecundario,
-                      fontSize: 11,
-                    ),
-                  ),
-                  Text(
-                    visita.nombrePaciente,
-                    style: const TextStyle(
-                      color: ColoresApp.azulOscuro,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  Text(
-                    '${visita.nombreServicio} · ${visita.direccion}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: ColoresApp.textoSecundario,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
+          );
+        },
+        borderRadius: BorderRadius.circular(18),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: ColoresApp.amarillo.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(13),
+                ),
+                child: const Icon(
+                  Icons.pets_rounded,
+                  color: ColoresApp.amarillo,
+                ),
               ),
-            ),
-            const Icon(
-              Icons.chevron_right_rounded,
-              color: ColoresApp.textoSecundario,
-            ),
-          ],
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Próxima visita',
+                      style: TextStyle(
+                        color: ColoresApp.textoSecundario,
+                        fontSize: 11,
+                      ),
+                    ),
+                    Text(
+                      visita.nombrePaciente,
+                      style: const TextStyle(
+                        color: ColoresApp.azulOscuro,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    Text(
+                      '${visita.nombreServicio} · ${visita.direccion}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: ColoresApp.textoSecundario,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: ColoresApp.textoSecundario,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -346,9 +324,7 @@ class _TarjetaProximaVisita extends StatelessWidget {
 }
 
 class _MapaVacio extends StatelessWidget {
-  const _MapaVacio({
-    required this.onActualizar,
-  });
+  const _MapaVacio({required this.onActualizar});
 
   final Future<void> Function() onActualizar;
 
@@ -369,10 +345,7 @@ class _MapaVacio extends StatelessWidget {
             const Text(
               'No hay visitas con ubicación disponible.',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: ColoresApp.textoSecundario,
-                fontSize: 16,
-              ),
+              style: TextStyle(color: ColoresApp.textoSecundario, fontSize: 16),
             ),
             const SizedBox(height: 16),
             FilledButton.icon(

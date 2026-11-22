@@ -1,7 +1,13 @@
 import 'package:dio/dio.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:vetruta_movil/core/red/cliente_api.dart';
 import 'package:vetruta_movil/core/red/excepcion_api.dart';
 import 'package:vetruta_movil/modulos/agenda/datos/modelos/agenda_visita.dart';
+import 'package:vetruta_movil/modulos/agenda/datos/modelos/completar_visita_solicitud.dart';
+import 'package:vetruta_movil/modulos/agenda/datos/modelos/detalle_visita.dart';
+import 'package:vetruta_movil/modulos/agenda/datos/modelos/evidencia_resultado.dart';
+import 'package:vetruta_movil/modulos/agenda/datos/modelos/evidencia_visita.dart';
+import 'package:vetruta_movil/modulos/agenda/datos/modelos/registro_visita_resultado.dart';
 
 class AgendaServicio {
   AgendaServicio(this._clienteApi);
@@ -41,11 +47,9 @@ class AgendaServicio {
           )
           .toList();
 
-      visitas.sort(
-        (primera, segunda) {
-          return primera.fechaProgramada.compareTo(segunda.fechaProgramada);
-        },
-      );
+      visitas.sort((primera, segunda) {
+        return primera.fechaProgramada.compareTo(segunda.fechaProgramada);
+      });
 
       return visitas;
     } on DioException catch (excepcion) {
@@ -62,6 +66,183 @@ class AgendaServicio {
         'La respuesta del servidor no tiene el formato esperado.',
       );
     }
+  }
+
+  Future<DetalleVisita> obtenerDetalle(int visitaId) async {
+    try {
+      final respuesta = await _clienteApi.dio.get<Map<String, dynamic>>(
+        '/visitas/$visitaId',
+      );
+
+      final datos = respuesta.data;
+
+      if (datos == null) {
+        throw const ExcepcionApi('La respuesta del servidor no es válida.');
+      }
+
+      return DetalleVisita.fromJson(datos);
+    } on DioException catch (excepcion) {
+      throw ExcepcionApi(
+        _obtenerMensaje(excepcion),
+        codigoEstado: excepcion.response?.statusCode,
+      );
+    } on FormatException {
+      throw const ExcepcionApi(
+        'La respuesta del servidor no tiene el formato esperado.',
+      );
+    } on TypeError {
+      throw const ExcepcionApi(
+        'La respuesta del servidor no tiene el formato esperado.',
+      );
+    }
+  }
+
+  Future<List<EvidenciaVisita>> obtenerEvidencias(int visitaId) async {
+    try {
+      final respuesta = await _clienteApi.dio.get<List<dynamic>>(
+        '/visitas/$visitaId/evidencias',
+      );
+
+      final datos = respuesta.data;
+
+      if (datos == null) {
+        throw const ExcepcionApi('La respuesta del servidor no es válida.');
+      }
+
+      return datos
+          .map(
+            (elemento) => EvidenciaVisita.fromJson(
+              Map<String, dynamic>.from(elemento as Map),
+            ),
+          )
+          .toList();
+    } on DioException catch (excepcion) {
+      throw ExcepcionApi(
+        _obtenerMensaje(excepcion),
+        codigoEstado: excepcion.response?.statusCode,
+      );
+    } on FormatException {
+      throw const ExcepcionApi(
+        'La respuesta del servidor no tiene el formato esperado.',
+      );
+    } on TypeError {
+      throw const ExcepcionApi(
+        'La respuesta del servidor no tiene el formato esperado.',
+      );
+    }
+  }
+
+  Future<RegistroVisitaResultado> completarVisita(
+    int visitaId,
+    CompletarVisitaSolicitud solicitud,
+  ) async {
+    try {
+      final respuesta = await _clienteApi.dio.post<Map<String, dynamic>>(
+        '/visitas/$visitaId/completar',
+        data: solicitud.toJson(),
+      );
+
+      final datos = respuesta.data;
+
+      if (datos == null) {
+        throw const ExcepcionApi('La respuesta del servidor no es válida.');
+      }
+
+      return RegistroVisitaResultado.fromJson(datos);
+    } on DioException catch (excepcion) {
+      throw ExcepcionApi(
+        _obtenerMensaje(excepcion),
+        codigoEstado: excepcion.response?.statusCode,
+      );
+    } on FormatException {
+      throw const ExcepcionApi(
+        'La respuesta del servidor no tiene el formato esperado.',
+      );
+    } on TypeError {
+      throw const ExcepcionApi(
+        'La respuesta del servidor no tiene el formato esperado.',
+      );
+    }
+  }
+
+  Future<EvidenciaResultado> agregarEvidencia(
+    int visitaId,
+    XFile archivo,
+  ) async {
+    try {
+      final bytes = await archivo.readAsBytes();
+
+      if (bytes.isEmpty) {
+        throw const ExcepcionApi('La fotografía está vacía.');
+      }
+
+      if (bytes.length > 10 * 1024 * 1024) {
+        throw const ExcepcionApi('La fotografía no puede superar los 10 MB.');
+      }
+
+      final tipoContenido = _obtenerTipoContenido(archivo);
+
+      final formulario = FormData.fromMap({
+        'archivo': MultipartFile.fromBytes(
+          bytes,
+          filename: archivo.name,
+          contentType: DioMediaType.parse(tipoContenido),
+        ),
+        'fechaCaptura': DateTime.now().toIso8601String(),
+      });
+
+      final respuesta = await _clienteApi.dio.post<Map<String, dynamic>>(
+        '/visitas/$visitaId/evidencias',
+        data: formulario,
+      );
+
+      final datos = respuesta.data;
+
+      if (datos == null) {
+        throw const ExcepcionApi('La respuesta del servidor no es válida.');
+      }
+
+      return EvidenciaResultado.fromJson(datos);
+    } on DioException catch (excepcion) {
+      throw ExcepcionApi(
+        _obtenerMensaje(excepcion),
+        codigoEstado: excepcion.response?.statusCode,
+      );
+    } on FormatException {
+      throw const ExcepcionApi(
+        'La respuesta del servidor no tiene el formato esperado.',
+      );
+    } on TypeError {
+      throw const ExcepcionApi(
+        'La respuesta del servidor no tiene el formato esperado.',
+      );
+    }
+  }
+
+  String _obtenerTipoContenido(XFile archivo) {
+    final tipoInformado = archivo.mimeType?.toLowerCase();
+
+    if (tipoInformado == 'image/jpeg' ||
+        tipoInformado == 'image/png' ||
+        tipoInformado == 'image/webp') {
+      return tipoInformado!;
+    }
+
+    final nombre = archivo.name.toLowerCase();
+
+    if (nombre.endsWith('.jpg') || nombre.endsWith('.jpeg')) {
+      return 'image/jpeg';
+    }
+
+    if (nombre.endsWith('.png')) {
+      return 'image/png';
+    }
+
+    if (nombre.endsWith('.webp')) {
+      return 'image/webp';
+    }
+
+    throw const ExcepcionApi('Solo se permiten fotografías JPG, PNG o WEBP.');
   }
 
   String _formatearFecha(DateTime fecha) {
@@ -87,7 +268,7 @@ class AgendaServicio {
       case DioExceptionType.connectionError:
         return 'No fue posible conectarse con el servidor.';
       default:
-        return 'No fue posible obtener la agenda.';
+        return 'Ocurrió un error al comunicarse con el servidor.';
     }
   }
 }
