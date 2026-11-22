@@ -7,16 +7,20 @@ using VetRuta.API.Modelos;
 
 namespace VetRuta.API.Controllers;
 
-[Authorize]
+[Authorize(Roles = "DIRECTOR,MEDICO,TECNICO")]
 [ApiController]
 [Route("visitas")]
 public class VisitasController : ControllerBase
 {
     private readonly IVisitaServicio _visitaServicio;
+    private readonly IAsignacionServicio _asignacionServicio;
 
-    public VisitasController(IVisitaServicio visitaServicio)
+    public VisitasController(
+        IVisitaServicio visitaServicio,
+        IAsignacionServicio asignacionServicio)
     {
         _visitaServicio = visitaServicio;
+        _asignacionServicio = asignacionServicio;
     }
 
     [HttpGet]
@@ -54,38 +58,95 @@ public class VisitasController : ControllerBase
             return NotFound(new { mensaje = "Visita no encontrada." });
         }
 
-        var usuarioId = ObtenerUsuarioId();
-        if (usuarioId is null)
-        {
-            return Unauthorized();
-        }
-
-        if (User.IsInRole("TECNICO") && visita.TecnicoUsuarioId != usuarioId)
+        if (!PuedeAccederVisita(visita))
         {
             return Forbid();
         }
 
-        if (User.IsInRole("MEDICO") && visita.MedicoResponsableUsuarioId != usuarioId)
-        {
-            return Forbid();
-        }
         return Ok(visita);
     }
 
     [HttpGet("paciente/{pacienteId:int}/historial")]
     [ProducesResponseType(typeof(IEnumerable<HistorialClinicoDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<IEnumerable<HistorialClinicoDto>>> ObtenerHistorial(int pacienteId, DateTime? fechaDesde, DateTime? fechaHasta)
     {
+        if (!await PuedeAccederPacienteAsync(pacienteId))
+        {
+            return Forbid();
+        }
+
         var historial = await _visitaServicio.ObtenerHistorialAsync(pacienteId, fechaDesde, fechaHasta);
         return Ok(historial);
     }
 
     [HttpGet("{visitaId:int}/evidencias")]
     [ProducesResponseType(typeof(IEnumerable<EvidenciaVisitaDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IEnumerable<EvidenciaVisitaDto>>> ListarEvidencias(int visitaId)
     {
+        var visita = await _visitaServicio.ObtenerDetalleAsync(visitaId);
+        if (visita is null)
+        {
+            return NotFound(new { mensaje = "Visita no encontrada." });
+        }
+
+        if (!PuedeAccederVisita(visita))
+        {
+            return Forbid();
+        }
+
         var evidencias = await _visitaServicio.ListarEvidenciasAsync(null, visitaId);
         return Ok(evidencias);
+    }
+
+    [HttpGet("{visitaId:int}/evidencias/{evidenciaVisitaId:int}/archivo")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ObtenerArchivoEvidencia(
+        int visitaId,
+        int evidenciaVisitaId)
+    {
+        var visita = await _visitaServicio.ObtenerDetalleAsync(visitaId);
+        if (visita is null)
+        {
+            return NotFound(new { mensaje = "Visita no encontrada." });
+        }
+
+        if (!PuedeAccederVisita(visita))
+        {
+            return Forbid();
+        }
+
+        var evidencias = await _visitaServicio.ListarEvidenciasAsync(
+            null,
+            visitaId);
+        var evidencia = evidencias.FirstOrDefault(
+            elemento => elemento.EvidenciaVisitaId == evidenciaVisitaId);
+
+        if (evidencia is null)
+        {
+            return NotFound(new { mensaje = "Evidencia no encontrada." });
+        }
+
+        var nombreGuardado = Path.GetFileName(evidencia.RutaArchivo);
+        var rutaFisica = Path.Combine(
+            Directory.GetCurrentDirectory(),
+            "wwwroot",
+            "evidencias",
+            nombreGuardado);
+
+        if (!System.IO.File.Exists(rutaFisica))
+        {
+            return NotFound(new { mensaje = "El archivo de evidencia no existe." });
+        }
+
+        return PhysicalFile(
+            rutaFisica,
+            evidencia.TipoContenido,
+            enableRangeProcessing: false);
     }
 
     [Authorize(Roles = "MEDICO,TECNICO")]
@@ -129,7 +190,7 @@ public class VisitasController : ControllerBase
         return CreatedAtAction(nameof(ObtenerDetalle), new { visitaId = resultado.VisitaId }, resultado);
     }
 
-    [Authorize(Roles = "ROOT,DIRECTOR")]
+    [Authorize(Roles = "DIRECTOR")]
     [HttpPut("{visitaId:int}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -288,5 +349,47 @@ public class VisitasController : ControllerBase
     {
         var usuarioIdTexto = User.FindFirstValue(ClaimTypes.NameIdentifier);
         return int.TryParse(usuarioIdTexto, out var usuarioId) ? usuarioId : null;
+    }
+
+    private bool PuedeAccederVisita(VisitaDetalleDto visita)
+    {
+        if (User.IsInRole("DIRECTOR"))
+        {
+            return true;
+        }
+
+        var usuarioId = ObtenerUsuarioId();
+        if (usuarioId is null)
+        {
+            return false;
+        }
+
+        return (User.IsInRole("MEDICO")
+                && visita.MedicoResponsableUsuarioId == usuarioId)
+            || (User.IsInRole("TECNICO")
+                && visita.TecnicoUsuarioId == usuarioId);
+    }
+
+    private async Task<bool> PuedeAccederPacienteAsync(int pacienteId)
+    {
+        if (User.IsInRole("DIRECTOR"))
+        {
+            return true;
+        }
+
+        var usuarioId = ObtenerUsuarioId();
+        if (usuarioId is null)
+        {
+            return false;
+        }
+
+        var asignacion = await _asignacionServicio
+            .ObtenerActivaPorPacienteAsync(pacienteId);
+
+        return asignacion is not null
+            && ((User.IsInRole("MEDICO")
+                    && asignacion.AsignadoPorUsuarioId == usuarioId)
+                || (User.IsInRole("TECNICO")
+                    && asignacion.TecnicoUsuarioId == usuarioId));
     }
 }

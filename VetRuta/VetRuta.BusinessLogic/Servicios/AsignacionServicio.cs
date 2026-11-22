@@ -14,12 +14,18 @@ public class AsignacionServicio : IAsignacionServicio
     private readonly EjecutorProcedimientos _ejecutorProcedimientos;
     private readonly IPacienteServicio _pacienteServicio;
     private readonly IUsuarioServicio _usuarioServicio;
+    private readonly IJerarquiaServicio _jerarquiaServicio;
 
-    public AsignacionServicio(EjecutorProcedimientos ejecutorProcedimientos, IPacienteServicio pacienteServicio, IUsuarioServicio usuarioServicio)
+    public AsignacionServicio(
+        EjecutorProcedimientos ejecutorProcedimientos,
+        IPacienteServicio pacienteServicio,
+        IUsuarioServicio usuarioServicio,
+        IJerarquiaServicio jerarquiaServicio)
     {
         _ejecutorProcedimientos = ejecutorProcedimientos;
         _pacienteServicio = pacienteServicio;
         _usuarioServicio = usuarioServicio;
+        _jerarquiaServicio = jerarquiaServicio;
     }
 
     public async Task<AsignacionActivaDto?> ObtenerActivaPorPacienteAsync(int pacienteId)
@@ -70,6 +76,26 @@ public class AsignacionServicio : IAsignacionServicio
             return null;
         }
 
+        var asignacionActual = await ObtenerActivaPorPacienteAsync(
+            solicitud.PacienteId);
+
+        if (asignacionActual is not null
+            && asignacionActual.AsignadoPorUsuarioId != asignadoPorUsuarioId)
+        {
+            return null;
+        }
+
+        var tecnicosDelMedico = await _jerarquiaServicio
+            .ListarSubordinadosAsync(asignadoPorUsuarioId);
+
+        if (!tecnicosDelMedico.Any(
+                subordinado => subordinado.UsuarioSubordinadoId
+                    == solicitud.TecnicoUsuarioId
+                    && subordinado.Activo))
+        {
+            return null;
+        }
+
         return await _ejecutorProcedimientos.EjecutarAsync<AsignacionResultadoDto>(OpcionAsignarPaciente,new
         {
             solicitud.PacienteId,
@@ -79,7 +105,10 @@ public class AsignacionServicio : IAsignacionServicio
         });
     }
 
-    public async Task<bool> FinalizarAsync(int asignacionPacienteId, FinalizarAsignacionSolicitudDto solicitud)
+    public async Task<bool> FinalizarAsync(
+        int asignacionPacienteId,
+        FinalizarAsignacionSolicitudDto solicitud,
+        int asignadoPorUsuarioId)
     {
         if (asignacionPacienteId <= 0)
         {
@@ -89,6 +118,7 @@ public class AsignacionServicio : IAsignacionServicio
         var resultado = await _ejecutorProcedimientos.EjecutarAsync<AsignacionResultadoDto>(OpcionFinalizarAsignacion,new
         {
             AsignacionPacienteId = asignacionPacienteId,
+            AsignadoPorUsuarioId = asignadoPorUsuarioId,
             Observacion = LimpiarTexto(solicitud.Observacion)
         });
 

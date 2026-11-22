@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:vetruta_movil/core/red/excepcion_api.dart';
 import 'package:vetruta_movil/modulos/jerarquia/datos/modelos/usuario_jerarquia.dart';
 import 'package:vetruta_movil/modulos/pacientes/datos/modelos/catalogos_paciente.dart';
@@ -104,6 +105,7 @@ class CrearPacienteControlador extends ChangeNotifier {
     String? observaciones,
     double? latitud,
     double? longitud,
+    XFile? fotoPaciente,
   }) async {
     final error = _validar(
       nombresPropietario: nombresPropietario,
@@ -138,6 +140,7 @@ class CrearPacienteControlador extends ChangeNotifier {
         tecnicoUsuarioId: _tecnicoUsuarioId!,
         latitud: latitud,
         longitud: longitud,
+        fotoPaciente: fotoPaciente,
       );
 
       return true;

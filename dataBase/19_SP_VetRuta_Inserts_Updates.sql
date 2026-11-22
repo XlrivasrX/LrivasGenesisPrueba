@@ -471,7 +471,11 @@ BEGIN
         SET FechaFin = GETDATE(),
             Observacion = ISNULL(@Observacion, Observacion)
         WHERE AsignacionPacienteId = @AsignacionPacienteId
+          AND AsignadoPorUsuarioId = @AsignadoPorUsuarioId
           AND FechaFin IS NULL;
+
+        IF @@ROWCOUNT = 0
+            RETURN;
 
         SELECT @AsignacionPacienteId AS AsignacionPacienteId,
                N'Asignación finalizada correctamente.' AS Mensaje;

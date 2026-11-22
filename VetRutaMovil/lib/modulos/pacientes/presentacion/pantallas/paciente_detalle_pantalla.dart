@@ -1,38 +1,33 @@
+import 'dart:typed_data';
+
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
-import 'package:vetruta_movil/core/red/configuracion_api.dart';
 import 'package:vetruta_movil/core/tema/colores_app.dart';
 import 'package:vetruta_movil/modulos/agenda/presentacion/pantallas/detalle_visita_pantalla.dart';
+import 'package:vetruta_movil/modulos/autenticacion/presentacion/controladores/autenticacion_controlador.dart';
 import 'package:vetruta_movil/modulos/pacientes/datos/modelos/historial_clinico.dart';
 import 'package:vetruta_movil/modulos/pacientes/datos/modelos/paciente_detalle.dart';
 import 'package:vetruta_movil/modulos/pacientes/datos/servicios/paciente_servicio.dart';
 import 'package:vetruta_movil/modulos/pacientes/presentacion/controladores/paciente_detalle_controlador.dart';
 
 class PacienteDetallePantalla extends StatelessWidget {
-  const PacienteDetallePantalla({
-    required this.pacienteId,
-    super.key,
-  });
+  const PacienteDetallePantalla({required this.pacienteId, super.key});
 
   final int pacienteId;
 
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider<PacienteDetalleControlador>(
-      create: (context) => PacienteDetalleControlador(
-        context.read<PacienteServicio>(),
-      )..cargarDetalle(pacienteId),
-      child: _PacienteDetalleContenido(
-        pacienteId: pacienteId,
-      ),
+      create: (context) =>
+          PacienteDetalleControlador(context.read<PacienteServicio>())
+            ..cargarDetalle(pacienteId),
+      child: _PacienteDetalleContenido(pacienteId: pacienteId),
     );
   }
 }
 
 class _PacienteDetalleContenido extends StatelessWidget {
-  const _PacienteDetalleContenido({
-    required this.pacienteId,
-  });
+  const _PacienteDetalleContenido({required this.pacienteId});
 
   final int pacienteId;
 
@@ -42,9 +37,7 @@ class _PacienteDetalleContenido extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: ColoresApp.fondo,
-      appBar: AppBar(
-        title: const Text('Detalle del paciente'),
-      ),
+      appBar: AppBar(title: const Text('Detalle del paciente')),
       body: _construirContenido(context, controlador),
     );
   }
@@ -70,10 +63,7 @@ class _PacienteDetalleContenido extends StatelessWidget {
                 color: ColoresApp.coral,
               ),
               const SizedBox(height: 14),
-              Text(
-                controlador.mensajeError!,
-                textAlign: TextAlign.center,
-              ),
+              Text(controlador.mensajeError!, textAlign: TextAlign.center),
               const SizedBox(height: 18),
               OutlinedButton.icon(
                 onPressed: () {
@@ -89,11 +79,16 @@ class _PacienteDetalleContenido extends StatelessWidget {
     }
 
     final paciente = controlador.paciente;
+    final esMedico =
+        context
+            .watch<AutenticacionControlador>()
+            .usuario
+            ?.codigoRol
+            .toUpperCase() ==
+        'MEDICO';
 
     if (paciente == null) {
-      return const Center(
-        child: Text('No se encontró el paciente.'),
-      );
+      return const Center(child: Text('No se encontró el paciente.'));
     }
 
     return RefreshIndicator(
@@ -102,7 +97,10 @@ class _PacienteDetalleContenido extends StatelessWidget {
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(18),
         children: [
-          _EncabezadoPaciente(paciente: paciente),
+          _EncabezadoPaciente(
+            paciente: paciente,
+            foto: controlador.fotoPaciente,
+          ),
           const SizedBox(height: 16),
           _SeccionPaciente(
             titulo: 'Información del paciente',
@@ -110,16 +108,13 @@ class _PacienteDetalleContenido extends StatelessWidget {
               _DatoPaciente(
                 icono: Icons.pets_outlined,
                 etiqueta: 'Especie y raza',
-                valor:
-                    '${paciente.nombreEspecie} · ${paciente.nombreRaza}',
+                valor: '${paciente.nombreEspecie} · ${paciente.nombreRaza}',
               ),
               if (paciente.fechaNacimientoAproximada != null)
                 _DatoPaciente(
                   icono: Icons.cake_outlined,
                   etiqueta: 'Nacimiento aproximado',
-                  valor: _formatearFecha(
-                    paciente.fechaNacimientoAproximada!,
-                  ),
+                  valor: _formatearFecha(paciente.fechaNacimientoAproximada!),
                 ),
               if (_tieneTexto(paciente.observaciones))
                 _DatoPaciente(
@@ -167,8 +162,7 @@ class _PacienteDetalleContenido extends StatelessWidget {
                   etiqueta: 'Zona',
                   valor: paciente.nombreZona!,
                 ),
-              if (paciente.latitud != null &&
-                  paciente.longitud != null)
+              if (paciente.latitud != null && paciente.longitud != null)
                 _DatoPaciente(
                   icono: Icons.location_on_outlined,
                   etiqueta: 'Ubicación',
@@ -176,12 +170,37 @@ class _PacienteDetalleContenido extends StatelessWidget {
                       '${paciente.latitud!.toStringAsFixed(6)}, '
                       '${paciente.longitud!.toStringAsFixed(6)}',
                 ),
+              if (esMedico)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6, bottom: 10),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: controlador.actualizandoUbicacion
+                          ? null
+                          : () => _actualizarUbicacion(context, controlador),
+                      icon: controlador.actualizandoUbicacion
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.my_location_rounded),
+                      label: Text(
+                        controlador.actualizandoUbicacion
+                            ? 'Obteniendo ubicación...'
+                            : paciente.latitud == null ||
+                                  paciente.longitud == null
+                            ? 'Agregar ubicación actual'
+                            : 'Actualizar ubicación actual',
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ),
           const SizedBox(height: 16),
-          _HistorialPaciente(
-            historial: controlador.historial,
-          ),
+          _HistorialPaciente(historial: controlador.historial),
           const SizedBox(height: 20),
         ],
       ),
@@ -211,14 +230,30 @@ class _PacienteDetalleContenido extends StatelessWidget {
     return '${fecha.day} de ${meses[fecha.month - 1]} '
         'de ${fecha.year}';
   }
+
+  Future<void> _actualizarUbicacion(
+    BuildContext context,
+    PacienteDetalleControlador controlador,
+  ) async {
+    await controlador.actualizarUbicacion();
+
+    if (!context.mounted) {
+      return;
+    }
+
+    final mensaje = controlador.mensajeUbicacion;
+    if (mensaje != null) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(mensaje)));
+    }
+  }
 }
 
 class _EncabezadoPaciente extends StatelessWidget {
-  const _EncabezadoPaciente({
-    required this.paciente,
-  });
+  const _EncabezadoPaciente({required this.paciente, required this.foto});
 
   final PacienteDetalle paciente;
+  final Uint8List? foto;
 
   @override
   Widget build(BuildContext context) {
@@ -230,7 +265,7 @@ class _EncabezadoPaciente extends StatelessWidget {
       ),
       child: Row(
         children: [
-          _FotoPaciente(paciente: paciente),
+          _FotoPaciente(bytes: foto),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
@@ -285,31 +320,21 @@ class _EncabezadoPaciente extends StatelessWidget {
 }
 
 class _FotoPaciente extends StatelessWidget {
-  const _FotoPaciente({
-    required this.paciente,
-  });
+  const _FotoPaciente({required this.bytes});
 
-  final PacienteDetalle paciente;
+  final Uint8List? bytes;
 
   @override
   Widget build(BuildContext context) {
-    final rutaFoto = paciente.rutaFoto;
-
-    if (rutaFoto == null || rutaFoto.trim().isEmpty) {
+    final foto = bytes;
+    if (foto == null) {
       return _fotoPredeterminada();
     }
 
-    final url = rutaFoto.startsWith('http://') ||
-            rutaFoto.startsWith('https://')
-        ? rutaFoto
-        : '${ConfiguracionApi.urlBase}'
-            '${rutaFoto.startsWith('/') ? '' : '/'}'
-            '$rutaFoto';
-
     return ClipRRect(
       borderRadius: BorderRadius.circular(18),
-      child: Image.network(
-        url,
+      child: Image.memory(
+        foto,
         width: 82,
         height: 82,
         fit: BoxFit.cover,
@@ -336,10 +361,7 @@ class _FotoPaciente extends StatelessWidget {
 }
 
 class _SeccionPaciente extends StatelessWidget {
-  const _SeccionPaciente({
-    required this.titulo,
-    required this.children,
-  });
+  const _SeccionPaciente({required this.titulo, required this.children});
 
   final String titulo;
   final List<Widget> children;
@@ -390,11 +412,7 @@ class _DatoPaciente extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            icono,
-            color: ColoresApp.verdePrincipal,
-            size: 24,
-          ),
+          Icon(icono, color: ColoresApp.verdePrincipal, size: 24),
           const SizedBox(width: 13),
           Expanded(
             child: Column(
@@ -426,9 +444,7 @@ class _DatoPaciente extends StatelessWidget {
 }
 
 class _HistorialPaciente extends StatelessWidget {
-  const _HistorialPaciente({
-    required this.historial,
-  });
+  const _HistorialPaciente({required this.historial});
 
   final List<HistorialClinico> historial;
 
@@ -460,9 +476,7 @@ class _HistorialPaciente extends StatelessWidget {
                 child: Text(
                   'Este paciente todavía no tiene atenciones registradas.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: ColoresApp.textoSecundario,
-                  ),
+                  style: TextStyle(color: ColoresApp.textoSecundario),
                 ),
               ),
             )
@@ -470,9 +484,7 @@ class _HistorialPaciente extends StatelessWidget {
             ...historial.map(
               (atencion) => Padding(
                 padding: const EdgeInsets.only(bottom: 12),
-                child: _TarjetaHistorial(
-                  atencion: atencion,
-                ),
+                child: _TarjetaHistorial(atencion: atencion),
               ),
             ),
         ],
@@ -482,9 +494,7 @@ class _HistorialPaciente extends StatelessWidget {
 }
 
 class _TarjetaHistorial extends StatelessWidget {
-  const _TarjetaHistorial({
-    required this.atencion,
-  });
+  const _TarjetaHistorial({required this.atencion});
 
   final HistorialClinico atencion;
 
@@ -498,9 +508,8 @@ class _TarjetaHistorial extends StatelessWidget {
         onTap: () {
           Navigator.of(context).push(
             MaterialPageRoute<void>(
-              builder: (_) => DetalleVisitaPantalla(
-                visitaId: atencion.visitaId,
-              ),
+              builder: (_) =>
+                  DetalleVisitaPantalla(visitaId: atencion.visitaId),
             ),
           );
         },
@@ -513,9 +522,7 @@ class _TarjetaHistorial extends StatelessWidget {
                 width: 46,
                 height: 46,
                 decoration: BoxDecoration(
-                  color: ColoresApp.verdePrincipal.withValues(
-                    alpha: 0.12,
-                  ),
+                  color: ColoresApp.verdePrincipal.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: const Icon(
@@ -539,9 +546,7 @@ class _TarjetaHistorial extends StatelessWidget {
                     const SizedBox(height: 3),
                     Text(
                       _formatearFechaHora(atencion.fechaRegistro),
-                      style: const TextStyle(
-                        color: ColoresApp.textoSecundario,
-                      ),
+                      style: const TextStyle(color: ColoresApp.textoSecundario),
                     ),
                     const SizedBox(height: 8),
                     Text(
@@ -553,9 +558,7 @@ class _TarjetaHistorial extends StatelessWidget {
                     ),
                     Text(
                       'Técnico: ${atencion.nombreTecnico}',
-                      style: const TextStyle(
-                        color: ColoresApp.textoSecundario,
-                      ),
+                      style: const TextStyle(color: ColoresApp.textoSecundario),
                     ),
                     if (atencion.temperaturaCelsius != null)
                       Text(

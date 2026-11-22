@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:vetruta_movil/core/red/cliente_api.dart';
@@ -211,6 +213,30 @@ class AgendaServicio {
     } on TypeError {
       throw const ExcepcionApi(
         'La respuesta del servidor no tiene el formato esperado.',
+      );
+    }
+  }
+
+  Future<Uint8List> obtenerArchivoEvidencia(
+    int visitaId,
+    int evidenciaVisitaId,
+  ) async {
+    try {
+      final respuesta = await _clienteApi.dio.get<List<int>>(
+        '/visitas/$visitaId/evidencias/$evidenciaVisitaId/archivo',
+        options: Options(responseType: ResponseType.bytes),
+      );
+
+      final datos = respuesta.data;
+      if (datos == null || datos.isEmpty) {
+        throw const ExcepcionApi('La fotografía no está disponible.');
+      }
+
+      return Uint8List.fromList(datos);
+    } on DioException catch (excepcion) {
+      throw ExcepcionApi(
+        _obtenerMensaje(excepcion),
+        codigoEstado: excepcion.response?.statusCode,
       );
     }
   }

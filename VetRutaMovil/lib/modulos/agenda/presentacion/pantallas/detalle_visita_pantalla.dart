@@ -1,6 +1,7 @@
+import 'dart:typed_data';
+
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
-import 'package:vetruta_movil/core/red/configuracion_api.dart';
 import 'package:vetruta_movil/modulos/agenda/datos/modelos/detalle_visita.dart';
 import 'package:vetruta_movil/modulos/agenda/datos/modelos/evidencia_visita.dart';
 import 'package:vetruta_movil/modulos/agenda/datos/servicios/agenda_servicio.dart';
@@ -217,6 +218,7 @@ class _DetalleVisitaContenido extends StatelessWidget {
             const SizedBox(height: 16),
             _SeccionEvidencias(
               evidencias: controlador.evidencias,
+              archivos: controlador.archivosEvidencia,
             ),
           ],
           if (!detalle.completada) ...[
@@ -492,9 +494,11 @@ class _DatoDetalle extends StatelessWidget {
 class _SeccionEvidencias extends StatelessWidget {
   const _SeccionEvidencias({
     required this.evidencias,
+    required this.archivos,
   });
 
   final List<EvidenciaVisita> evidencias;
+  final Map<int, Uint8List> archivos;
 
   @override
   Widget build(BuildContext context) {
@@ -525,7 +529,7 @@ class _SeccionEvidencias extends StatelessWidget {
               separatorBuilder: (_, _) => const SizedBox(width: 12),
               itemBuilder: (context, index) {
                 return _FotoEvidencia(
-                  evidencia: evidencias[index],
+                  bytes: archivos[evidencias[index].evidenciaVisitaId],
                 );
               },
             ),
@@ -538,64 +542,60 @@ class _SeccionEvidencias extends StatelessWidget {
 
 class _FotoEvidencia extends StatelessWidget {
   const _FotoEvidencia({
-    required this.evidencia,
+    required this.bytes,
   });
 
-  final EvidenciaVisita evidencia;
+  final Uint8List? bytes;
 
   @override
   Widget build(BuildContext context) {
-    final url = _construirUrl(evidencia.rutaArchivo);
+    final archivo = bytes;
+
+    if (archivo == null) {
+      return _errorFotografia();
+    }
 
     return InkWell(
       borderRadius: BorderRadius.circular(16),
-      onTap: () => _mostrarFoto(context, url),
+      onTap: () => _mostrarFoto(context, archivo),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
-        child: Image.network(
-          url,
+        child: Image.memory(
+          archivo,
           width: 230,
           height: 190,
           fit: BoxFit.cover,
-          errorBuilder: (_, _, _) {
-            return Container(
-              width: 230,
-              height: 190,
-              color: const Color(0xFFE9EEF2),
-              alignment: Alignment.center,
-              child: const Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.broken_image_outlined,
-                    color: Color(0xFF737A80),
-                    size: 42,
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    'No fue posible cargar la fotografía',
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            );
-          },
+          errorBuilder: (_, _, _) => _errorFotografia(),
         ),
       ),
     );
   }
 
-  String _construirUrl(String ruta) {
-    if (ruta.startsWith('http://') || ruta.startsWith('https://')) {
-      return ruta;
-    }
-
-    return '${ConfiguracionApi.urlBase}'
-        '${ruta.startsWith('/') ? '' : '/'}'
-        '$ruta';
+  Widget _errorFotografia() {
+    return Container(
+      width: 230,
+      height: 190,
+      color: const Color(0xFFE9EEF2),
+      alignment: Alignment.center,
+      child: const Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.broken_image_outlined,
+            color: Color(0xFF737A80),
+            size: 42,
+          ),
+          SizedBox(height: 8),
+          Text(
+            'No fue posible cargar la fotografía',
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
   }
 
-  void _mostrarFoto(BuildContext context, String url) {
+  void _mostrarFoto(BuildContext context, Uint8List archivo) {
     showDialog<void>(
       context: context,
       builder: (context) {
@@ -607,8 +607,8 @@ class _FotoEvidencia extends StatelessWidget {
               InteractiveViewer(
                 minScale: 0.8,
                 maxScale: 4,
-                child: Image.network(
-                  url,
+                child: Image.memory(
+                  archivo,
                   fit: BoxFit.contain,
                   errorBuilder: (_, _, _) {
                     return const SizedBox(

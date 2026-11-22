@@ -127,7 +127,20 @@ if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 
-// Permite consultar las imágenes guardadas en wwwroot.
+// Las evidencias solo se entregan mediante un endpoint autenticado.
+app.Use(async (context, siguiente) =>
+{
+    if (context.Request.Path.StartsWithSegments("/evidencias")
+        || context.Request.Path.StartsWithSegments("/fotos-pacientes"))
+    {
+        context.Response.StatusCode = StatusCodes.Status404NotFound;
+        return;
+    }
+
+    await siguiente();
+});
+
+// Permite consultar otros archivos públicos guardados en wwwroot.
 app.UseStaticFiles();
 
 app.UseAuthentication();

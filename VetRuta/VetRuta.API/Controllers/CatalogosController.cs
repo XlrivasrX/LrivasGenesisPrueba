@@ -5,7 +5,7 @@ using VetRuta.Entities.DTOs.Catalogos;
 
 namespace VetRuta.API.Controllers;
 
-[Authorize]
+[Authorize(Roles = "DIRECTOR,MEDICO,TECNICO")]
 [ApiController]
 [Route("catalogos")]
 public class CatalogosController : ControllerBase

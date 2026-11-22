@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace VetRuta.API.Controllers;
 
-[Authorize]
+[Authorize(Roles = "ROOT")]
 [ApiController]
 [Route("roles")]
 public class RolesController : ControllerBase

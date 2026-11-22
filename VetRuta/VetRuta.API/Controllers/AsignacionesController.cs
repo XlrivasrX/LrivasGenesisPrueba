@@ -6,7 +6,7 @@ using VetRuta.Entities.DTOs.Asignaciones;
 
 namespace VetRuta.API.Controllers;
 
-[Authorize]
+[Authorize(Roles = "DIRECTOR,MEDICO,TECNICO")]
 [ApiController]
 [Route("asignaciones")]
 public class AsignacionesController : ControllerBase
@@ -28,6 +28,12 @@ public class AsignacionesController : ControllerBase
         {
             return NotFound(new { mensaje = "El paciente no tiene una asignación activa." });
         }
+
+        if (!PuedeAccederAsignacion(asignacion))
+        {
+            return Forbid();
+        }
+
         return Ok(asignacion);
     }
 
@@ -47,7 +53,7 @@ public class AsignacionesController : ControllerBase
         return Ok(pacientes);
     }
 
-    [Authorize(Roles = "ROOT,DIRECTOR")]
+    [Authorize(Roles = "DIRECTOR")]
     [HttpGet("tecnico/{tecnicoUsuarioId:int}")]
     [ProducesResponseType(typeof(IEnumerable<PacienteAsignadoDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<PacienteAsignadoDto>>> ListarPorTecnico(int tecnicoUsuarioId, [FromQuery] PacienteAsignadoFiltroDto filtros)
@@ -79,14 +85,43 @@ public class AsignacionesController : ControllerBase
     [Authorize(Roles = "MEDICO")]
     [HttpPatch("{asignacionPacienteId:int}/finalizar")]
     [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Finalizar(int asignacionPacienteId, [FromBody] FinalizarAsignacionSolicitudDto solicitud)
     {
-        var finalizada = await _asignacionServicio.FinalizarAsync(asignacionPacienteId, solicitud);
+        var usuarioIdTexto = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!int.TryParse(usuarioIdTexto, out var usuarioId))
+        {
+            return Unauthorized();
+        }
+
+        var finalizada = await _asignacionServicio.FinalizarAsync(
+            asignacionPacienteId,
+            solicitud,
+            usuarioId);
         if (!finalizada)
         {
             return NotFound(new { mensaje = "Asignación activa no encontrada." });
         }
         return Ok(new { mensaje = "Asignación finalizada correctamente." });
+    }
+
+    private bool PuedeAccederAsignacion(AsignacionActivaDto asignacion)
+    {
+        if (User.IsInRole("DIRECTOR"))
+        {
+            return true;
+        }
+
+        var usuarioIdTexto = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!int.TryParse(usuarioIdTexto, out var usuarioId))
+        {
+            return false;
+        }
+
+        return (User.IsInRole("MEDICO")
+                && asignacion.AsignadoPorUsuarioId == usuarioId)
+            || (User.IsInRole("TECNICO")
+                && asignacion.TecnicoUsuarioId == usuarioId);
     }
 }

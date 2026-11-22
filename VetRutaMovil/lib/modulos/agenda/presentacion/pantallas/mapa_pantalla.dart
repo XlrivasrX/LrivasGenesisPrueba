@@ -23,26 +23,34 @@ class MapaPantalla extends StatefulWidget {
 
 class _MapaPantallaState extends State<MapaPantalla> {
   _FiltroMapa _filtro = _FiltroMapa.todos;
+  bool _actualizando = false;
 
   @override
   Widget build(BuildContext context) {
     final visitas = _obtenerVisitasFiltradas();
     final visitasConUbicacion = visitas.where(_tieneUbicacion).toList();
+    final todasConUbicacion = widget.visitas.where(_tieneUbicacion).toList();
 
-    if (visitasConUbicacion.isEmpty) {
-      return _MapaVacio(onActualizar: widget.onActualizar);
+    if (todasConUbicacion.isEmpty) {
+      return _MapaVacio(onActualizar: _actualizar, actualizando: _actualizando);
     }
 
     final puntos = visitasConUbicacion
         .map((visita) => LatLng(visita.latitud!, visita.longitud!))
         .toList();
+    final centro = puntos.isNotEmpty
+        ? puntos.first
+        : LatLng(
+            todasConUbicacion.first.latitud!,
+            todasConUbicacion.first.longitud!,
+          );
 
-    final proximaVisita = _obtenerProximaVisita(visitasConUbicacion);
+    final proximaVisita = _obtenerProximaVisita(visitas);
 
     return Stack(
       children: [
         FlutterMap(
-          options: MapOptions(initialCenter: puntos.first, initialZoom: 14),
+          options: MapOptions(initialCenter: centro, initialZoom: 14),
           children: [
             TileLayer(
               urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -147,8 +155,14 @@ class _MapaPantallaState extends State<MapaPantalla> {
                     ),
                   ),
                   IconButton(
-                    onPressed: widget.onActualizar,
-                    icon: const Icon(Icons.refresh_rounded),
+                    onPressed: _actualizando ? null : _actualizar,
+                    icon: _actualizando
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.refresh_rounded),
                     tooltip: 'Actualizar',
                   ),
                 ],
@@ -156,6 +170,30 @@ class _MapaPantallaState extends State<MapaPantalla> {
             ),
           ),
         ),
+        if (visitasConUbicacion.isEmpty)
+          Positioned(
+            top: 92,
+            left: 24,
+            right: 24,
+            child: IgnorePointer(
+              child: Material(
+                color: ColoresApp.superficie.withValues(alpha: 0.94),
+                elevation: 2,
+                borderRadius: BorderRadius.circular(16),
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Text(
+                    _mensajeFiltroVacio(visitas),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: ColoresApp.textoSecundario,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
         if (proximaVisita != null)
           Positioned(
             left: 12,
@@ -201,6 +239,53 @@ class _MapaPantallaState extends State<MapaPantalla> {
   bool _tieneUbicacion(AgendaVisita visita) {
     return visita.latitud != null && visita.longitud != null;
   }
+
+  String _mensajeFiltroVacio(List<AgendaVisita> visitas) {
+    if (visitas.isNotEmpty) {
+      final cantidad = visitas.length;
+      final tipo = switch (_filtro) {
+        _FiltroMapa.pendientes => 'pendiente',
+        _FiltroMapa.atrasadas => 'atrasada',
+        _FiltroMapa.todos => '',
+      };
+
+      return cantidad == 1
+          ? 'La visita $tipo no tiene ubicación registrada.'
+          : 'Las $cantidad visitas ${tipo.isEmpty ? '' : '${tipo}s '}'
+                'no tienen ubicación registrada.';
+    }
+
+    return switch (_filtro) {
+      _FiltroMapa.pendientes =>
+        'No hay visitas pendientes con ubicación disponible.',
+      _FiltroMapa.atrasadas =>
+        'No hay visitas atrasadas con ubicación disponible.',
+      _FiltroMapa.todos => 'No hay visitas con ubicación disponible.',
+    };
+  }
+
+  Future<void> _actualizar() async {
+    if (_actualizando) {
+      return;
+    }
+
+    setState(() {
+      _actualizando = true;
+    });
+
+    await widget.onActualizar();
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _actualizando = false;
+    });
+
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('Ruta actualizada.')));
+  }
 }
 
 class _FiltroBoton extends StatelessWidget {
@@ -225,7 +310,7 @@ class _FiltroBoton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
         decoration: BoxDecoration(
           color: seleccionado
-              ? color.withValues(alpha: 0.14)
+              ? color.withValues(alpha: 0.24)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(18),
         ),
@@ -324,9 +409,10 @@ class _TarjetaProximaVisita extends StatelessWidget {
 }
 
 class _MapaVacio extends StatelessWidget {
-  const _MapaVacio({required this.onActualizar});
+  const _MapaVacio({required this.onActualizar, required this.actualizando});
 
   final Future<void> Function() onActualizar;
+  final bool actualizando;
 
   @override
   Widget build(BuildContext context) {
@@ -349,9 +435,18 @@ class _MapaVacio extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             FilledButton.icon(
-              onPressed: onActualizar,
-              icon: const Icon(Icons.refresh_rounded),
-              label: const Text('Actualizar'),
+              onPressed: actualizando ? null : onActualizar,
+              icon: actualizando
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.refresh_rounded),
+              label: Text(actualizando ? 'Actualizando...' : 'Actualizar'),
             ),
           ],
         ),

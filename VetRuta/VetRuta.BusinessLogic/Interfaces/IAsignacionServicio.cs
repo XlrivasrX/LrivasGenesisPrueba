@@ -12,5 +12,8 @@ public interface IAsignacionServicio
 
     Task<AsignacionResultadoDto?> AsignarAsync(AsignarPacienteSolicitudDto solicitud, int asignadoPorUsuarioId);
 
-    Task<bool> FinalizarAsync(int asignacionPacienteId, FinalizarAsignacionSolicitudDto solicitud);
+    Task<bool> FinalizarAsync(
+        int asignacionPacienteId,
+        FinalizarAsignacionSolicitudDto solicitud,
+        int asignadoPorUsuarioId);
 }

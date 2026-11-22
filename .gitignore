@@ -41,3 +41,4 @@ Thumbs.db
 
 # Evidencias cargadas durante la ejecución
 VetRuta/VetRuta.API/wwwroot/evidencias/*
+VetRuta/VetRuta.API/wwwroot/fotos-pacientes/*

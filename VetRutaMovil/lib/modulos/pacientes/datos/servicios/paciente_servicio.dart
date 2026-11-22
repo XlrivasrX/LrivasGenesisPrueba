@@ -1,4 +1,7 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:vetruta_movil/core/red/cliente_api.dart';
 import 'package:vetruta_movil/core/red/excepcion_api.dart';
 import 'package:vetruta_movil/modulos/jerarquia/datos/modelos/usuario_jerarquia.dart';
@@ -36,6 +39,27 @@ class PacienteServicio {
     } on TypeError {
       throw const ExcepcionApi(
         'La respuesta del servidor no tiene el formato esperado.',
+      );
+    }
+  }
+
+  Future<Uint8List> obtenerFoto(int pacienteId) async {
+    try {
+      final respuesta = await _clienteApi.dio.get<List<int>>(
+        '/pacientes/$pacienteId/foto',
+        options: Options(responseType: ResponseType.bytes),
+      );
+
+      final datos = respuesta.data;
+      if (datos == null || datos.isEmpty) {
+        throw const ExcepcionApi('La fotografía no está disponible.');
+      }
+
+      return Uint8List.fromList(datos);
+    } on DioException catch (excepcion) {
+      throw ExcepcionApi(
+        _obtenerMensaje(excepcion),
+        codigoEstado: excepcion.response?.statusCode,
       );
     }
   }
@@ -78,6 +102,24 @@ class PacienteServicio {
     } on TypeError {
       throw const ExcepcionApi(
         'La respuesta del servidor no tiene el formato esperado.',
+      );
+    }
+  }
+
+  Future<void> actualizarUbicacionPropietario({
+    required int propietarioId,
+    required double latitud,
+    required double longitud,
+  }) async {
+    try {
+      await _clienteApi.dio.patch<Map<String, dynamic>>(
+        '/propietarios/$propietarioId/ubicacion',
+        data: {'latitud': latitud, 'longitud': longitud},
+      );
+    } on DioException catch (excepcion) {
+      throw ExcepcionApi(
+        _obtenerMensaje(excepcion),
+        codigoEstado: excepcion.response?.statusCode,
       );
     }
   }
@@ -179,6 +221,7 @@ class PacienteServicio {
     String? observaciones,
     double? latitud,
     double? longitud,
+    XFile? fotoPaciente,
   }) async {
     try {
       final respuestaPropietario = await _clienteApi.dio
@@ -232,6 +275,10 @@ class PacienteServicio {
         },
       );
 
+      if (fotoPaciente != null) {
+        await _guardarFotoPaciente(pacienteId, fotoPaciente);
+      }
+
       return pacienteId;
     } on DioException catch (excepcion) {
       throw ExcepcionApi(
@@ -239,6 +286,52 @@ class PacienteServicio {
         codigoEstado: excepcion.response?.statusCode,
       );
     }
+  }
+
+  Future<void> _guardarFotoPaciente(int pacienteId, XFile archivo) async {
+    final bytes = await archivo.readAsBytes();
+
+    if (bytes.isEmpty) {
+      throw const ExcepcionApi('La fotografía seleccionada está vacía.');
+    }
+
+    if (bytes.length > 10 * 1024 * 1024) {
+      throw const ExcepcionApi('La fotografía no puede superar los 10 MB.');
+    }
+
+    final formulario = FormData.fromMap({
+      'archivo': MultipartFile.fromBytes(
+        bytes,
+        filename: archivo.name,
+        contentType: DioMediaType.parse(_obtenerTipoContenido(archivo)),
+      ),
+    });
+
+    await _clienteApi.dio.post<Map<String, dynamic>>(
+      '/pacientes/$pacienteId/foto',
+      data: formulario,
+    );
+  }
+
+  String _obtenerTipoContenido(XFile archivo) {
+    final tipoInformado = archivo.mimeType?.toLowerCase();
+
+    if (tipoInformado == 'image/jpeg' ||
+        tipoInformado == 'image/png' ||
+        tipoInformado == 'image/webp') {
+      return tipoInformado!;
+    }
+
+    final nombre = archivo.name.toLowerCase();
+    if (nombre.endsWith('.png')) {
+      return 'image/png';
+    }
+
+    if (nombre.endsWith('.webp')) {
+      return 'image/webp';
+    }
+
+    return 'image/jpeg';
   }
 
   String? _textoOpcional(String? texto) {
