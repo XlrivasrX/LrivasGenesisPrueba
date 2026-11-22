@@ -39,6 +39,7 @@ public class PacientesController : ControllerBase
         return Ok(paciente);
     }
 
+    [Authorize(Roles = "MEDICO")]
     [HttpPost]
     [ProducesResponseType(typeof(PacienteCreadoDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -60,6 +61,7 @@ public class PacientesController : ControllerBase
         return CreatedAtAction(nameof(ObtenerPorId), new { pacienteId = pacienteCreado.PacienteId }, pacienteCreado);
     }
 
+    [Authorize(Roles = "MEDICO")]
     [HttpPut("{pacienteId:int}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

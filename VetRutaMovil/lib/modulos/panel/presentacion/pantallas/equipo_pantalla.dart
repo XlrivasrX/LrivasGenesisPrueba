@@ -1,16 +1,19 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:vetruta_movil/core/tema/colores_app.dart';
+import 'package:vetruta_movil/modulos/jerarquia/presentacion/pantallas/asignar_tecnicos_pantalla.dart';
 import 'package:vetruta_movil/modulos/panel/datos/modelos/visitas_por_tecnico.dart';
 
 class EquipoPantalla extends StatelessWidget {
   const EquipoPantalla({
     required this.tecnicos,
     required this.onActualizar,
+    required this.puedeAdministrarJerarquia,
     super.key,
   });
 
   final List<VisitasPorTecnico> tecnicos;
   final Future<void> Function() onActualizar;
+  final bool puedeAdministrarJerarquia;
 
   @override
   Widget build(BuildContext context) {
@@ -34,6 +37,34 @@ class EquipoPantalla extends StatelessWidget {
               color: ColoresApp.textoSecundario,
             ),
           ),
+          if (puedeAdministrarJerarquia) ...[
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: () async {
+                  await Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) =>
+                          const AsignarTecnicosPantalla(),
+                    ),
+                  );
+
+                  if (!context.mounted) {
+                    return;
+                  }
+
+                  await onActualizar();
+                },
+                icon: const Icon(
+                  Icons.manage_accounts_outlined,
+                ),
+                label: const Text(
+                  'Administrar asignaciones',
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: 20),
           if (tecnicos.isEmpty)
             const _EstadoVacio()

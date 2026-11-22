@@ -368,6 +368,9 @@ BEGIN
         SELECT
             A.AsignacionPacienteId,
             A.TecnicoUsuarioId,
+            CONCAT(T.Nombres, N' ', T.Apellidos) AS NombreTecnico,
+            A.AsignadoPorUsuarioId,
+            CONCAT(M.Nombres, N' ', M.Apellidos) AS NombreMedico,
             A.FechaInicio,
             A.Observacion,
             P.PacienteId,
@@ -389,7 +392,10 @@ BEGIN
         INNER JOIN dbo.Propietarios PR ON PR.PropietarioId = P.PropietarioId
         INNER JOIN dbo.Especies E ON E.EspecieId = P.EspecieId
         INNER JOIN dbo.Razas R ON R.RazaId = P.RazaId
-        WHERE A.TecnicoUsuarioId = @TecnicoUsuarioId
+        INNER JOIN dbo.Usuarios T ON T.UsuarioId = A.TecnicoUsuarioId
+        INNER JOIN dbo.Usuarios M ON M.UsuarioId = A.AsignadoPorUsuarioId
+        WHERE (@TecnicoUsuarioId IS NULL OR A.TecnicoUsuarioId = @TecnicoUsuarioId)
+          AND (@MedicoResponsableUsuarioId IS NULL OR A.AsignadoPorUsuarioId = @MedicoResponsableUsuarioId)
           AND A.FechaFin IS NULL
           AND (@Activo IS NULL OR P.Activo = @Activo)
           AND
@@ -589,26 +595,59 @@ BEGIN
     BEGIN
         SELECT
             (SELECT COUNT(1)
-             FROM dbo.Propietarios
-             WHERE Activo = 1) AS PropietariosActivos,
+             FROM dbo.Propietarios PR
+             WHERE PR.Activo = 1
+               AND
+               (
+                   (@MedicoResponsableUsuarioId IS NULL AND @TecnicoUsuarioId IS NULL)
+                   OR EXISTS
+                   (
+                       SELECT 1
+                       FROM dbo.Pacientes P
+                       INNER JOIN dbo.AsignacionesPacientes A ON A.PacienteId = P.PacienteId
+                       WHERE P.PropietarioId = PR.PropietarioId
+                         AND A.FechaFin IS NULL
+                         AND (@MedicoResponsableUsuarioId IS NULL OR A.AsignadoPorUsuarioId = @MedicoResponsableUsuarioId)
+                         AND (@TecnicoUsuarioId IS NULL OR A.TecnicoUsuarioId = @TecnicoUsuarioId)
+                   )
+               )) AS PropietariosActivos,
             (SELECT COUNT(1)
-             FROM dbo.Pacientes
-             WHERE Activo = 1) AS PacientesActivos,
+             FROM dbo.Pacientes P
+             WHERE P.Activo = 1
+               AND
+               (
+                   (@MedicoResponsableUsuarioId IS NULL AND @TecnicoUsuarioId IS NULL)
+                   OR EXISTS
+                   (
+                       SELECT 1
+                       FROM dbo.AsignacionesPacientes A
+                       WHERE A.PacienteId = P.PacienteId
+                         AND A.FechaFin IS NULL
+                         AND (@MedicoResponsableUsuarioId IS NULL OR A.AsignadoPorUsuarioId = @MedicoResponsableUsuarioId)
+                         AND (@TecnicoUsuarioId IS NULL OR A.TecnicoUsuarioId = @TecnicoUsuarioId)
+                   )
+               )) AS PacientesActivos,
             (SELECT COUNT(1)
              FROM dbo.Visitas V
              LEFT JOIN dbo.RegistrosVisitas RV ON RV.VisitaId = V.VisitaId
              WHERE RV.RegistroVisitaId IS NULL
                AND (@FechaDesde IS NULL OR V.FechaProgramada >= @FechaDesde)
-               AND (@FechaHasta IS NULL OR V.FechaProgramada < DATEADD(DAY, 1, @FechaHasta))) AS VisitasProgramadas,
+               AND (@FechaHasta IS NULL OR V.FechaProgramada < DATEADD(DAY, 1, @FechaHasta))
+               AND (@MedicoResponsableUsuarioId IS NULL OR V.MedicoResponsableUsuarioId = @MedicoResponsableUsuarioId)
+               AND (@TecnicoUsuarioId IS NULL OR V.TecnicoUsuarioId = @TecnicoUsuarioId)) AS VisitasProgramadas,
             (SELECT COUNT(1)
              FROM dbo.Visitas V
              INNER JOIN dbo.RegistrosVisitas RV ON RV.VisitaId = V.VisitaId
              WHERE (@FechaDesde IS NULL OR V.FechaProgramada >= @FechaDesde)
-               AND (@FechaHasta IS NULL OR V.FechaProgramada < DATEADD(DAY, 1, @FechaHasta))) AS VisitasCompletadas,
+               AND (@FechaHasta IS NULL OR V.FechaProgramada < DATEADD(DAY, 1, @FechaHasta))
+               AND (@MedicoResponsableUsuarioId IS NULL OR V.MedicoResponsableUsuarioId = @MedicoResponsableUsuarioId)
+               AND (@TecnicoUsuarioId IS NULL OR V.TecnicoUsuarioId = @TecnicoUsuarioId)) AS VisitasCompletadas,
             (SELECT COUNT(1)
              FROM dbo.Visitas V
              WHERE V.FechaProgramada >= CONVERT(DATE, GETDATE())
-               AND V.FechaProgramada < DATEADD(DAY, 1, CONVERT(DATE, GETDATE()))) AS VisitasDeHoy;
+               AND V.FechaProgramada < DATEADD(DAY, 1, CONVERT(DATE, GETDATE()))
+               AND (@MedicoResponsableUsuarioId IS NULL OR V.MedicoResponsableUsuarioId = @MedicoResponsableUsuarioId)
+               AND (@TecnicoUsuarioId IS NULL OR V.TecnicoUsuarioId = @TecnicoUsuarioId)) AS VisitasDeHoy;
     END
 
     -- Opción 21: consultar las visitas agrupadas por servicio
@@ -627,6 +666,8 @@ BEGIN
             ON V.ServicioId = S.ServicioId
            AND (@FechaDesde IS NULL OR V.FechaProgramada >= @FechaDesde)
            AND (@FechaHasta IS NULL OR V.FechaProgramada < DATEADD(DAY, 1, @FechaHasta))
+           AND (@MedicoResponsableUsuarioId IS NULL OR V.MedicoResponsableUsuarioId = @MedicoResponsableUsuarioId)
+           AND (@TecnicoUsuarioId IS NULL OR V.TecnicoUsuarioId = @TecnicoUsuarioId)
         LEFT JOIN dbo.RegistrosVisitas RV ON RV.VisitaId = V.VisitaId
         WHERE S.Activo = 1
         GROUP BY S.ServicioId, S.Codigo, S.Nombre
@@ -646,6 +687,8 @@ BEGIN
         LEFT JOIN dbo.RegistrosVisitas RV ON RV.VisitaId = V.VisitaId
         WHERE (@FechaDesde IS NULL OR V.FechaProgramada >= @FechaDesde)
           AND (@FechaHasta IS NULL OR V.FechaProgramada < DATEADD(DAY, 1, @FechaHasta))
+          AND (@MedicoResponsableUsuarioId IS NULL OR V.MedicoResponsableUsuarioId = @MedicoResponsableUsuarioId)
+          AND (@TecnicoUsuarioId IS NULL OR V.TecnicoUsuarioId = @TecnicoUsuarioId)
         GROUP BY CONVERT(DATE, V.FechaProgramada)
         ORDER BY Fecha;
     END
@@ -715,6 +758,8 @@ BEGIN
         INNER JOIN dbo.RegistrosVisitas RV ON RV.VisitaId = V.VisitaId
         WHERE (@FechaDesde IS NULL OR V.FechaProgramada >= @FechaDesde)
           AND (@FechaHasta IS NULL OR V.FechaProgramada < DATEADD(DAY, 1, @FechaHasta))
+          AND (@MedicoResponsableUsuarioId IS NULL OR V.MedicoResponsableUsuarioId = @MedicoResponsableUsuarioId)
+          AND (@TecnicoUsuarioId IS NULL OR V.TecnicoUsuarioId = @TecnicoUsuarioId)
         GROUP BY E.EspecieId, E.Nombre
         ORDER BY E.Nombre;
     END
@@ -733,8 +778,38 @@ BEGIN
         LEFT JOIN dbo.RegistrosVisitas RV ON RV.VisitaId = V.VisitaId
         WHERE (@FechaDesde IS NULL OR V.FechaProgramada >= @FechaDesde)
           AND (@FechaHasta IS NULL OR V.FechaProgramada < DATEADD(DAY, 1, @FechaHasta))
+          AND (@MedicoResponsableUsuarioId IS NULL OR V.MedicoResponsableUsuarioId = @MedicoResponsableUsuarioId)
+          AND (@TecnicoUsuarioId IS NULL OR V.TecnicoUsuarioId = @TecnicoUsuarioId)
         GROUP BY U.UsuarioId, U.Nombres, U.Apellidos
         ORDER BY CantidadVisitas DESC, NombreTecnico;
+    END
+
+    -- Opción 27: consultar los pacientes activos agrupados por especie
+    ELSE IF @Opcion = 27
+    BEGIN
+        SELECT
+            E.EspecieId,
+            E.Nombre AS NombreEspecie,
+            COUNT(P.PacienteId) AS CantidadPacientes
+        FROM dbo.Especies E
+        INNER JOIN dbo.Pacientes P ON P.EspecieId = E.EspecieId
+        WHERE E.Activo = 1
+          AND P.Activo = 1
+          AND
+          (
+              (@MedicoResponsableUsuarioId IS NULL AND @TecnicoUsuarioId IS NULL)
+              OR EXISTS
+              (
+                  SELECT 1
+                  FROM dbo.AsignacionesPacientes A
+                  WHERE A.PacienteId = P.PacienteId
+                    AND A.FechaFin IS NULL
+                    AND (@MedicoResponsableUsuarioId IS NULL OR A.AsignadoPorUsuarioId = @MedicoResponsableUsuarioId)
+                    AND (@TecnicoUsuarioId IS NULL OR A.TecnicoUsuarioId = @TecnicoUsuarioId)
+              )
+          )
+        GROUP BY E.EspecieId, E.Nombre
+        ORDER BY E.Nombre;
     END
 
     ELSE

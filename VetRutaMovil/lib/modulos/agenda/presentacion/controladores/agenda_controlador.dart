@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:vetruta_movil/core/red/excepcion_api.dart';
 import 'package:vetruta_movil/modulos/agenda/datos/modelos/agenda_visita.dart';
+import 'package:vetruta_movil/modulos/agenda/datos/modelos/opciones_programacion.dart';
 import 'package:vetruta_movil/modulos/agenda/datos/servicios/agenda_servicio.dart';
 
 class AgendaControlador extends ChangeNotifier {
@@ -10,11 +11,13 @@ class AgendaControlador extends ChangeNotifier {
   final AgendaServicio _servicio;
 
   List<AgendaVisita> _visitas = const [];
+  List<PacienteProgramacion> _pacientes = const [];
   DateTime _fechaSeleccionada;
   bool _cargando = false;
   String? _mensajeError;
 
   List<AgendaVisita> get visitas => _visitas;
+  List<PacienteProgramacion> get pacientes => _pacientes;
   DateTime get fechaSeleccionada => _fechaSeleccionada;
   bool get cargando => _cargando;
   String? get mensajeError => _mensajeError;
@@ -50,9 +53,17 @@ class AgendaControlador extends ChangeNotifier {
       final inicio = _inicioSemana(_fechaSeleccionada);
       final fin = inicio.add(const Duration(days: 6));
 
-      _visitas = await _servicio.obtenerAgenda(
+      final agendaFutura = _servicio.obtenerAgenda(
         fechaDesde: inicio,
         fechaHasta: fin,
+      );
+      final pacientesFuturos = _servicio.obtenerPacientesProgramacion();
+
+      _visitas = await agendaFutura;
+      _pacientes = await pacientesFuturos;
+      _pacientes.sort(
+        (primero, segundo) =>
+            primero.nombrePaciente.compareTo(segundo.nombrePaciente),
       );
     } on ExcepcionApi catch (excepcion) {
       _mensajeError = excepcion.mensaje;

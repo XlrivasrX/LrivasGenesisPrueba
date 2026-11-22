@@ -480,6 +480,20 @@ BEGIN
     -- Opción 21: programar una visita
     ELSE IF @Opcion = 21
     BEGIN
+        IF EXISTS
+        (
+            SELECT 1
+            FROM dbo.Visitas
+            WHERE FechaProgramada = @FechaProgramada
+              AND
+              (
+                  PacienteId = @PacienteId
+                  OR TecnicoUsuarioId = @TecnicoUsuarioId
+                  OR MedicoResponsableUsuarioId = @MedicoResponsableUsuarioId
+              )
+        )
+            RETURN;
+
         INSERT INTO dbo.Visitas
         (
             PacienteId,
@@ -517,6 +531,21 @@ BEGIN
             WHERE VisitaId = @VisitaId
         )
             THROW 50008, N'No se puede modificar una visita que ya fue completada.', 1;
+
+        IF EXISTS
+        (
+            SELECT 1
+            FROM dbo.Visitas
+            WHERE VisitaId <> @VisitaId
+              AND FechaProgramada = @FechaProgramada
+              AND
+              (
+                  PacienteId = @PacienteId
+                  OR TecnicoUsuarioId = @TecnicoUsuarioId
+                  OR MedicoResponsableUsuarioId = @MedicoResponsableUsuarioId
+              )
+        )
+            RETURN;
 
         UPDATE dbo.Visitas
         SET PacienteId = @PacienteId,

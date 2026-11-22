@@ -31,7 +31,7 @@ public class AsignacionesController : ControllerBase
         return Ok(asignacion);
     }
 
-    [Authorize(Roles = "TECNICO")]
+    [Authorize(Roles = "MEDICO,TECNICO")]
     [HttpGet("mis-pacientes")]
     [ProducesResponseType(typeof(IEnumerable<PacienteAsignadoDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<PacienteAsignadoDto>>> ListarMisPacientes([FromQuery] PacienteAsignadoFiltroDto filtros)
@@ -41,7 +41,9 @@ public class AsignacionesController : ControllerBase
         {
             return Unauthorized();
         }
-        var pacientes = await _asignacionServicio.ListarPorTecnicoAsync(usuarioId, filtros);
+        var pacientes = User.IsInRole("MEDICO")
+            ? await _asignacionServicio.ListarPorMedicoAsync(usuarioId, filtros)
+            : await _asignacionServicio.ListarPorTecnicoAsync(usuarioId, filtros);
         return Ok(pacientes);
     }
 
@@ -54,7 +56,7 @@ public class AsignacionesController : ControllerBase
         return Ok(pacientes);
     }
 
-    [Authorize(Roles = "ROOT,DIRECTOR")]
+    [Authorize(Roles = "MEDICO")]
     [HttpPost]
     [ProducesResponseType(typeof(AsignacionResultadoDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -74,7 +76,7 @@ public class AsignacionesController : ControllerBase
         return Ok(resultado);
     }
 
-    [Authorize(Roles = "ROOT,DIRECTOR")]
+    [Authorize(Roles = "MEDICO")]
     [HttpPatch("{asignacionPacienteId:int}/finalizar")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

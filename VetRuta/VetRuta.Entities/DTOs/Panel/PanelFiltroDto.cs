@@ -4,4 +4,6 @@ public class PanelFiltroDto
 {
     public DateTime? FechaDesde { get; set; }
     public DateTime? FechaHasta { get; set; }
+    public int? MedicoResponsableUsuarioId { get; set; }
+    public int? TecnicoUsuarioId { get; set; }
 }

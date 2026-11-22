@@ -1,22 +1,20 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:vetruta_movil/core/tema/colores_app.dart';
-import 'package:vetruta_movil/modulos/agenda/datos/modelos/agenda_visita.dart';
+import 'package:vetruta_movil/modulos/agenda/datos/modelos/opciones_programacion.dart';
 import 'package:vetruta_movil/modulos/pacientes/presentacion/pantallas/paciente_detalle_pantalla.dart';
 
 class PacientesPantalla extends StatelessWidget {
   const PacientesPantalla({
-    required this.visitas,
+    required this.pacientes,
     required this.onActualizar,
     super.key,
   });
 
-  final List<AgendaVisita> visitas;
+  final List<PacienteProgramacion> pacientes;
   final Future<void> Function() onActualizar;
 
   @override
   Widget build(BuildContext context) {
-    final pacientes = _obtenerPacientes();
-
     return RefreshIndicator(
       onRefresh: onActualizar,
       child: ListView(
@@ -32,7 +30,7 @@ class PacientesPantalla extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           const Text(
-            'Mascotas incluidas en tu agenda semanal',
+            'Mascotas con una asignación activa',
             style: TextStyle(color: ColoresApp.textoSecundario),
           ),
           const SizedBox(height: 20),
@@ -42,35 +40,19 @@ class PacientesPantalla extends StatelessWidget {
             ...pacientes.map(
               (paciente) => Padding(
                 padding: const EdgeInsets.only(bottom: 12),
-                child: _TarjetaPaciente(visita: paciente),
+                child: _TarjetaPaciente(paciente: paciente),
               ),
             ),
         ],
       ),
     );
   }
-
-  List<AgendaVisita> _obtenerPacientes() {
-    final pacientesUnicos = <int, AgendaVisita>{};
-
-    for (final visita in visitas) {
-      pacientesUnicos.putIfAbsent(visita.pacienteId, () => visita);
-    }
-
-    final pacientes = pacientesUnicos.values.toList();
-
-    pacientes.sort((primero, segundo) {
-      return primero.nombrePaciente.compareTo(segundo.nombrePaciente);
-    });
-
-    return pacientes;
-  }
 }
 
 class _TarjetaPaciente extends StatelessWidget {
-  const _TarjetaPaciente({required this.visita});
+  const _TarjetaPaciente({required this.paciente});
 
-  final AgendaVisita visita;
+  final PacienteProgramacion paciente;
 
   @override
   Widget build(BuildContext context) {
@@ -79,7 +61,7 @@ class _TarjetaPaciente extends StatelessWidget {
         Navigator.of(context).push(
           MaterialPageRoute<void>(
             builder: (_) =>
-                PacienteDetallePantalla(pacienteId: visita.pacienteId),
+                PacienteDetallePantalla(pacienteId: paciente.pacienteId),
           ),
         );
       },
@@ -111,7 +93,7 @@ class _TarjetaPaciente extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    visita.nombrePaciente,
+                    paciente.nombrePaciente,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       color: ColoresApp.azulOscuro,
                       fontWeight: FontWeight.w800,
@@ -119,7 +101,7 @@ class _TarjetaPaciente extends StatelessWidget {
                   ),
                   const SizedBox(height: 3),
                   Text(
-                    '${visita.nombreEspecie} · ${visita.nombreRaza}',
+                    '${paciente.nombreEspecie} · ${paciente.nombreRaza}',
                     style: const TextStyle(color: ColoresApp.textoSecundario),
                   ),
                   const SizedBox(height: 8),
@@ -133,7 +115,7 @@ class _TarjetaPaciente extends StatelessWidget {
                       const SizedBox(width: 5),
                       Expanded(
                         child: Text(
-                          visita.nombrePropietario,
+                          paciente.nombrePropietario,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             color: ColoresApp.textoPrincipal,
@@ -154,7 +136,7 @@ class _TarjetaPaciente extends StatelessWidget {
                       ),
                       const SizedBox(width: 5),
                       Text(
-                        visita.telefonoPropietario,
+                        paciente.telefonoPropietario,
                         style: const TextStyle(
                           color: ColoresApp.textoPrincipal,
                           fontSize: 13,
@@ -192,7 +174,7 @@ class _EstadoVacio extends StatelessWidget {
           ),
           SizedBox(height: 12),
           Text(
-            'No hay pacientes en la agenda.',
+            'No hay pacientes asignados.',
             style: TextStyle(color: ColoresApp.textoSecundario, fontSize: 16),
           ),
         ],

@@ -12,6 +12,8 @@ public interface IVisitaServicio
 
     Task<IEnumerable<EvidenciaVisitaDto>> ListarEvidenciasAsync(int? registroVisitaId, int? visitaId);
 
+    Task<string?> ObtenerConflictoProgramacionAsync(GuardarVisitaSolicitudDto solicitud, int? visitaId = null);
+
     Task<VisitaResultadoDto?> ProgramarAsync(GuardarVisitaSolicitudDto solicitud, int programadaPorUsuarioId);
 
     Task<bool> ActualizarAsync(int visitaId, GuardarVisitaSolicitudDto solicitud);

@@ -81,6 +81,43 @@ public class VisitaServicio : IVisitaServicio
         });
     }
 
+    public async Task<string?> ObtenerConflictoProgramacionAsync(GuardarVisitaSolicitudDto solicitud, int? visitaId = null)
+    {
+        if (solicitud.FechaProgramada is null)
+        {
+            return null;
+        }
+
+        var fechaProgramada = solicitud.FechaProgramada.Value;
+        var visitas = await ListarAgendaAsync(new VisitaFiltroDto
+        {
+            FechaDesde = fechaProgramada.Date,
+            FechaHasta = fechaProgramada.Date
+        });
+
+        var coincidentes = visitas.Where(visita =>
+            (!visitaId.HasValue || visita.VisitaId != visitaId.Value)
+            && MismaFechaYHora(visita.FechaProgramada, fechaProgramada))
+            .ToList();
+
+        if (coincidentes.Any(visita => visita.PacienteId == solicitud.PacienteId))
+        {
+            return "El paciente ya tiene una visita programada para esa fecha y hora.";
+        }
+
+        if (coincidentes.Any(visita => visita.TecnicoUsuarioId == solicitud.TecnicoUsuarioId))
+        {
+            return "El técnico ya tiene una visita programada para esa fecha y hora.";
+        }
+
+        if (coincidentes.Any(visita => visita.MedicoResponsableUsuarioId == solicitud.MedicoResponsableUsuarioId))
+        {
+            return "El médico ya tiene una visita programada para esa fecha y hora.";
+        }
+
+        return null;
+    }
+
     public async Task<VisitaResultadoDto?> ProgramarAsync(GuardarVisitaSolicitudDto solicitud, int programadaPorUsuarioId)
     {
         if (!await DatosVisitaValidosAsync(solicitud))
@@ -186,7 +223,9 @@ public class VisitaServicio : IVisitaServicio
             return false;
         }
 
-        if (asignacion is null || asignacion.TecnicoUsuarioId != solicitud.TecnicoUsuarioId)
+        if (asignacion is null
+            || asignacion.TecnicoUsuarioId != solicitud.TecnicoUsuarioId
+            || asignacion.AsignadoPorUsuarioId != solicitud.MedicoResponsableUsuarioId)
         {
             return false;
         }
@@ -213,5 +252,14 @@ public class VisitaServicio : IVisitaServicio
     private static string? LimpiarTexto(string? texto)
     {
         return string.IsNullOrWhiteSpace(texto) ? null : texto.Trim();
+    }
+
+    private static bool MismaFechaYHora(DateTime primera, DateTime segunda)
+    {
+        return primera.Year == segunda.Year
+            && primera.Month == segunda.Month
+            && primera.Day == segunda.Day
+            && primera.Hour == segunda.Hour
+            && primera.Minute == segunda.Minute;
     }
 }

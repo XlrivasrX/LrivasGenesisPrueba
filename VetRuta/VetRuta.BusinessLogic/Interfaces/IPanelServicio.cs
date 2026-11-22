@@ -13,4 +13,6 @@ public interface IPanelServicio
     Task<IEnumerable<MascotasAtendidasDto>> ObtenerMascotasAtendidasAsync(PanelFiltroDto filtros);
 
     Task<IEnumerable<VisitasPorTecnicoDto>> ObtenerVisitasPorTecnicoAsync(PanelFiltroDto filtros);
+
+    Task<IEnumerable<PacientesPorEspecieDto>> ObtenerPacientesPorEspecieAsync(PanelFiltroDto filtros);
 }

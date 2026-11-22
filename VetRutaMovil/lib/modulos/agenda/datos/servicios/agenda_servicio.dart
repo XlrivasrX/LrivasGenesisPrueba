@@ -7,6 +7,7 @@ import 'package:vetruta_movil/modulos/agenda/datos/modelos/completar_visita_soli
 import 'package:vetruta_movil/modulos/agenda/datos/modelos/detalle_visita.dart';
 import 'package:vetruta_movil/modulos/agenda/datos/modelos/evidencia_resultado.dart';
 import 'package:vetruta_movil/modulos/agenda/datos/modelos/evidencia_visita.dart';
+import 'package:vetruta_movil/modulos/agenda/datos/modelos/opciones_programacion.dart';
 import 'package:vetruta_movil/modulos/agenda/datos/modelos/registro_visita_resultado.dart';
 
 class AgendaServicio {
@@ -93,6 +94,88 @@ class AgendaServicio {
     } on TypeError {
       throw const ExcepcionApi(
         'La respuesta del servidor no tiene el formato esperado.',
+      );
+    }
+  }
+
+  Future<List<PacienteProgramacion>> obtenerPacientesProgramacion() async {
+    try {
+      final respuesta = await _clienteApi.dio.get<List<dynamic>>(
+        '/asignaciones/mis-pacientes',
+        queryParameters: {'activo': true},
+      );
+
+      final datos = respuesta.data;
+      if (datos == null) {
+        throw const ExcepcionApi('La respuesta del servidor no es válida.');
+      }
+
+      return datos
+          .map(
+            (elemento) => PacienteProgramacion.fromJson(
+              Map<String, dynamic>.from(elemento as Map),
+            ),
+          )
+          .toList();
+    } on DioException catch (excepcion) {
+      throw ExcepcionApi(
+        _obtenerMensaje(excepcion),
+        codigoEstado: excepcion.response?.statusCode,
+      );
+    }
+  }
+
+  Future<List<ServicioProgramacion>> obtenerServiciosProgramacion() async {
+    try {
+      final respuesta = await _clienteApi.dio.get<List<dynamic>>(
+        '/catalogos/servicios',
+        queryParameters: {'activo': true},
+      );
+
+      final datos = respuesta.data;
+      if (datos == null) {
+        throw const ExcepcionApi('La respuesta del servidor no es válida.');
+      }
+
+      return datos
+          .map(
+            (elemento) => ServicioProgramacion.fromJson(
+              Map<String, dynamic>.from(elemento as Map),
+            ),
+          )
+          .toList();
+    } on DioException catch (excepcion) {
+      throw ExcepcionApi(
+        _obtenerMensaje(excepcion),
+        codigoEstado: excepcion.response?.statusCode,
+      );
+    }
+  }
+
+  Future<void> programarVisita({
+    required PacienteProgramacion paciente,
+    required ServicioProgramacion servicio,
+    required DateTime fechaProgramada,
+    required double precioProgramado,
+    String? observaciones,
+  }) async {
+    try {
+      await _clienteApi.dio.post<Map<String, dynamic>>(
+        '/visitas',
+        data: {
+          'pacienteId': paciente.pacienteId,
+          'servicioId': servicio.servicioId,
+          'medicoResponsableUsuarioId': paciente.asignadoPorUsuarioId,
+          'tecnicoUsuarioId': paciente.tecnicoUsuarioId,
+          'fechaProgramada': fechaProgramada.toIso8601String(),
+          'precioProgramado': precioProgramado,
+          'observacionesProgramacion': _textoOpcional(observaciones),
+        },
+      );
+    } on DioException catch (excepcion) {
+      throw ExcepcionApi(
+        _obtenerMensaje(excepcion),
+        codigoEstado: excepcion.response?.statusCode,
       );
     }
   }
@@ -251,6 +334,11 @@ class AgendaServicio {
     final dia = fecha.day.toString().padLeft(2, '0');
 
     return '$anio-$mes-$dia';
+  }
+
+  String? _textoOpcional(String? texto) {
+    final valor = texto?.trim();
+    return valor == null || valor.isEmpty ? null : valor;
   }
 
   String _obtenerMensaje(DioException excepcion) {

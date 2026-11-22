@@ -4,6 +4,9 @@ public class PacienteAsignadoDto
 {
     public int AsignacionPacienteId { get; set; }
     public int TecnicoUsuarioId { get; set; }
+    public string NombreTecnico { get; set; } = string.Empty;
+    public int AsignadoPorUsuarioId { get; set; }
+    public string NombreMedico { get; set; } = string.Empty;
     public DateTime FechaInicio { get; set; }
     public string? Observacion { get; set; }
     public int PacienteId { get; set; }

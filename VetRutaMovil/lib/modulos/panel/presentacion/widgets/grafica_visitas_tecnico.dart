@@ -24,7 +24,7 @@ class GraficaVisitasTecnico extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Visitas por técnico',
+            'Cumplimiento por técnico',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
               color: ColoresApp.azulOscuro,
               fontWeight: FontWeight.w800,
@@ -46,13 +46,13 @@ class GraficaVisitasTecnico extends StatelessWidget {
               height: 210,
               child: BarChart(
                 BarChartData(
-                  maxY: _obtenerMaximo(),
+                  maxY: 100,
                   alignment: BarChartAlignment.spaceAround,
                   barTouchData: BarTouchData(enabled: true),
                   borderData: FlBorderData(show: false),
                   gridData: const FlGridData(
                     drawVerticalLine: false,
-                    horizontalInterval: 1,
+                    horizontalInterval: 25,
                   ),
                   titlesData: FlTitlesData(
                     topTitles: const AxisTitles(
@@ -64,11 +64,11 @@ class GraficaVisitasTecnico extends StatelessWidget {
                     leftTitles: AxisTitles(
                       sideTitles: SideTitles(
                         showTitles: true,
-                        interval: 1,
-                        reservedSize: 28,
+                        interval: 25,
+                        reservedSize: 36,
                         getTitlesWidget: (valor, _) {
                           return Text(
-                            valor.toInt().toString(),
+                            '${valor.toInt()}%',
                             style: const TextStyle(
                               color: ColoresApp.textoSecundario,
                               fontSize: 11,
@@ -80,7 +80,7 @@ class GraficaVisitasTecnico extends StatelessWidget {
                     bottomTitles: AxisTitles(
                       sideTitles: SideTitles(
                         showTitles: true,
-                        reservedSize: 38,
+                        reservedSize: 50,
                         getTitlesWidget: (valor, _) {
                           final indice = valor.toInt();
 
@@ -91,9 +91,8 @@ class GraficaVisitasTecnico extends StatelessWidget {
                           return Padding(
                             padding: const EdgeInsets.only(top: 8),
                             child: Text(
-                              _obtenerNombreCorto(
-                                datos[indice].nombreTecnico,
-                              ),
+                              '${_obtenerNombreCorto(datos[indice].nombreTecnico)}\n'
+                              '${_calcularCumplimiento(datos[indice]).round()}%',
                               textAlign: TextAlign.center,
                               style: const TextStyle(
                                 color: ColoresApp.textoPrincipal,
@@ -112,7 +111,7 @@ class GraficaVisitasTecnico extends StatelessWidget {
                       x: indice,
                       barRods: [
                         BarChartRodData(
-                          toY: datos[indice].cantidadVisitas.toDouble(),
+                          toY: _calcularCumplimiento(datos[indice]),
                           width: 24,
                           color: ColoresApp.verdePrincipal,
                           borderRadius: BorderRadius.circular(6),
@@ -128,17 +127,12 @@ class GraficaVisitasTecnico extends StatelessWidget {
     );
   }
 
-  double _obtenerMaximo() {
-    final cantidadMayor = datos.fold<int>(
-      0,
-      (mayor, elemento) {
-        return elemento.cantidadVisitas > mayor
-            ? elemento.cantidadVisitas
-            : mayor;
-      },
-    );
+  double _calcularCumplimiento(VisitasPorTecnico dato) {
+    if (dato.cantidadVisitas == 0) {
+      return 0;
+    }
 
-    return cantidadMayor == 0 ? 1 : (cantidadMayor + 1).toDouble();
+    return dato.completadas * 100 / dato.cantidadVisitas;
   }
 
   String _obtenerNombreCorto(String nombre) {

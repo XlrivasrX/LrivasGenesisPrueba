@@ -1,10 +1,11 @@
 import 'package:dio/dio.dart';
 import 'package:vetruta_movil/core/red/cliente_api.dart';
 import 'package:vetruta_movil/core/red/excepcion_api.dart';
+import 'package:vetruta_movil/modulos/panel/datos/modelos/mascotas_atendidas.dart';
+import 'package:vetruta_movil/modulos/panel/datos/modelos/pacientes_por_especie.dart';
 import 'package:vetruta_movil/modulos/panel/datos/modelos/resumen_panel.dart';
 import 'package:vetruta_movil/modulos/panel/datos/modelos/visitas_por_fecha.dart';
 import 'package:vetruta_movil/modulos/panel/datos/modelos/visitas_por_servicio.dart';
-import 'package:vetruta_movil/modulos/panel/datos/modelos/mascotas_atendidas.dart';
 import 'package:vetruta_movil/modulos/panel/datos/modelos/visitas_por_tecnico.dart';
 
 class PanelServicio {
@@ -65,6 +66,13 @@ class PanelServicio {
     return _obtenerLista(
       '/panel/mascotas-atendidas',
       MascotasAtendidas.fromJson,
+    );
+  }
+
+  Future<List<PacientesPorEspecie>> obtenerPacientesPorEspecie() {
+    return _obtenerLista(
+      '/panel/pacientes-por-especie',
+      PacientesPorEspecie.fromJson,
     );
   }
 

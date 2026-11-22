@@ -1,16 +1,16 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:vetruta_movil/core/tema/colores_app.dart';
-import 'package:vetruta_movil/modulos/panel/presentacion/controladores/panel_controlador.dart';
-import 'package:vetruta_movil/modulos/panel/presentacion/widgets/grafica_visitas_servicio.dart';
-import 'package:vetruta_movil/modulos/panel/presentacion/widgets/tarjeta_cumplimiento.dart';
-import 'package:vetruta_movil/modulos/panel/presentacion/widgets/tarjeta_mascotas_atendidas.dart';
-import 'package:vetruta_movil/modulos/panel/presentacion/widgets/grafica_visitas_tecnico.dart';
 import 'package:vetruta_movil/modulos/autenticacion/presentacion/controladores/autenticacion_controlador.dart';
 import 'package:vetruta_movil/modulos/autenticacion/presentacion/pantallas/inicio_sesion_pantalla.dart';
+import 'package:vetruta_movil/modulos/panel/presentacion/controladores/panel_controlador.dart';
 import 'package:vetruta_movil/modulos/panel/presentacion/pantallas/actividad_pantalla.dart';
 import 'package:vetruta_movil/modulos/panel/presentacion/pantallas/equipo_pantalla.dart';
 import 'package:vetruta_movil/modulos/panel/presentacion/pantallas/perfil_pantalla.dart';
+import 'package:vetruta_movil/modulos/panel/presentacion/widgets/grafica_visitas_servicio.dart';
+import 'package:vetruta_movil/modulos/panel/presentacion/widgets/grafica_visitas_tecnico.dart';
+import 'package:vetruta_movil/modulos/panel/presentacion/widgets/tarjeta_cumplimiento.dart';
+import 'package:vetruta_movil/modulos/panel/presentacion/widgets/tarjeta_pacientes_por_especie.dart';
 
 class PanelPantalla extends StatefulWidget {
   const PanelPantalla({super.key});
@@ -73,6 +73,8 @@ class _PanelPantallaState extends State<PanelPantalla> {
             return EquipoPantalla(
               tecnicos: controlador.visitasPorTecnico,
               onActualizar: controlador.cargarPanel,
+              puedeAdministrarJerarquia:
+                  autenticacion.usuario?.codigoRol == 'DIRECTOR',
             );
           }
 
@@ -184,8 +186,8 @@ class _PanelPantallaState extends State<PanelPantalla> {
                   datos: controlador.visitasPorServicio,
                 ),
                 const SizedBox(height: 16),
-                TarjetaMascotasAtendidas(
-                  datos: controlador.mascotasAtendidas,
+                TarjetaPacientesPorEspecie(
+                  datos: controlador.pacientesPorEspecie,
                 ),
               ],
             ),

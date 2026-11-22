@@ -3,12 +3,15 @@ import 'package:provider/provider.dart';
 import 'package:vetruta_movil/core/tema/colores_app.dart';
 import 'package:vetruta_movil/modulos/agenda/datos/modelos/agenda_visita.dart';
 import 'package:vetruta_movil/modulos/agenda/presentacion/controladores/agenda_controlador.dart';
-import 'package:vetruta_movil/modulos/autenticacion/presentacion/controladores/autenticacion_controlador.dart';
-import 'package:vetruta_movil/modulos/autenticacion/presentacion/pantallas/inicio_sesion_pantalla.dart';
-import 'package:vetruta_movil/modulos/panel/presentacion/pantallas/perfil_pantalla.dart';
+import 'package:vetruta_movil/modulos/agenda/presentacion/pantallas/detalle_visita_pantalla.dart';
 import 'package:vetruta_movil/modulos/agenda/presentacion/pantallas/mapa_pantalla.dart';
 import 'package:vetruta_movil/modulos/agenda/presentacion/pantallas/pacientes_pantalla.dart';
-import 'package:vetruta_movil/modulos/agenda/presentacion/pantallas/detalle_visita_pantalla.dart';
+import 'package:vetruta_movil/modulos/agenda/presentacion/pantallas/programar_visita_pantalla.dart';
+import 'package:vetruta_movil/modulos/autenticacion/presentacion/controladores/autenticacion_controlador.dart';
+import 'package:vetruta_movil/modulos/autenticacion/presentacion/pantallas/inicio_sesion_pantalla.dart';
+import 'package:vetruta_movil/modulos/pacientes/presentacion/pantallas/crear_paciente_pantalla.dart';
+import 'package:vetruta_movil/modulos/panel/presentacion/pantallas/panel_personal_pantalla.dart';
+import 'package:vetruta_movil/modulos/panel/presentacion/pantallas/perfil_pantalla.dart';
 
 class AgendaPantalla extends StatefulWidget {
   const AgendaPantalla({super.key});
@@ -117,10 +120,58 @@ class _AgendaPantallaState extends State<AgendaPantalla> {
     );
   }
 
+  Future<void> _abrirCrearPaciente() async {
+    final creado = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(builder: (_) => const CrearPacientePantalla()),
+    );
+
+    if (!mounted || creado != true) {
+      return;
+    }
+
+    await context.read<AgendaControlador>().cargarAgenda();
+
+    if (!mounted) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Paciente creado y asignado correctamente.'),
+      ),
+    );
+  }
+
+  Future<void> _abrirProgramarVisita(
+    AgendaControlador controlador,
+  ) async {
+    final fecha = await Navigator.of(context).push<DateTime>(
+      MaterialPageRoute<DateTime>(
+        builder: (_) => const ProgramarVisitaPantalla(),
+      ),
+    );
+
+    if (!mounted || fecha == null) {
+      return;
+    }
+
+    controlador.seleccionarFecha(fecha);
+    await controlador.cargarAgenda();
+
+    if (!mounted) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Visita programada correctamente.')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final controlador = context.watch<AgendaControlador>();
     final autenticacion = context.watch<AutenticacionControlador>();
+    final codigoRol = autenticacion.usuario?.codigoRol.toUpperCase();
 
     return Scaffold(
       backgroundColor: ColoresApp.fondo,
@@ -132,22 +183,25 @@ class _AgendaPantallaState extends State<AgendaPantalla> {
             Text(_tituloSeccion()),
           ],
         ),
+        actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const PanelPersonalPantalla(),
+                ),
+              );
+            },
+            icon: const Icon(Icons.analytics_outlined),
+            tooltip: 'Ver tablero',
+          ),
+        ],
       ),
       body: _construirSeccion(context, controlador, autenticacion),
-      floatingActionButton: _indiceSeleccionado == 0
-          ? FloatingActionButton.extended(
-              onPressed: controlador.cargando
-                  ? null
-                  : () => _seleccionarVisitaParaRegistrar(controlador),
-              backgroundColor: ColoresApp.verdePrincipal,
-              foregroundColor: Colors.white,
-              icon: const Icon(Icons.add_rounded),
-              label: const Text(
-                'Registrar visita',
-                style: TextStyle(fontWeight: FontWeight.w700),
-              ),
-            )
-          : null,
+      floatingActionButton: _construirBotonesFlotantes(
+        codigoRol,
+        controlador,
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _indiceSeleccionado,
         onDestinationSelected: (indice) {
@@ -183,6 +237,70 @@ class _AgendaPantallaState extends State<AgendaPantalla> {
     );
   }
 
+  Widget? _construirBotonesFlotantes(
+    String? codigoRol,
+    AgendaControlador controlador,
+  ) {
+    if (codigoRol == 'MEDICO' && _indiceSeleccionado == 2) {
+      return FloatingActionButton.extended(
+        heroTag: 'nuevo-paciente',
+        onPressed: _abrirCrearPaciente,
+        backgroundColor: ColoresApp.verdePrincipal,
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.person_add_alt_1_rounded),
+        label: const Text(
+          'Nuevo paciente',
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
+      );
+    }
+
+    if (_indiceSeleccionado != 0 ||
+        (codigoRol != 'MEDICO' && codigoRol != 'TECNICO')) {
+      return null;
+    }
+
+    final botonProgramar = FloatingActionButton.extended(
+      heroTag: 'programar-visita',
+      onPressed: controlador.cargando
+          ? null
+          : () => _abrirProgramarVisita(controlador),
+      backgroundColor: ColoresApp.verdePrincipal,
+      foregroundColor: Colors.white,
+      icon: const Icon(Icons.event_available_outlined),
+      label: const Text(
+        'Programar visita',
+        style: TextStyle(fontWeight: FontWeight.w700),
+      ),
+    );
+
+    if (codigoRol == 'MEDICO') {
+      return botonProgramar;
+    }
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        botonProgramar,
+        const SizedBox(height: 10),
+        FloatingActionButton.extended(
+          heroTag: 'registrar-visita',
+          onPressed: controlador.cargando
+              ? null
+              : () => _seleccionarVisitaParaRegistrar(controlador),
+          backgroundColor: ColoresApp.verdePrincipal,
+          foregroundColor: Colors.white,
+          icon: const Icon(Icons.add_rounded),
+          label: const Text(
+            'Registrar visita',
+            style: TextStyle(fontWeight: FontWeight.w700),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _construirSeccion(
     BuildContext context,
     AgendaControlador controlador,
@@ -197,7 +315,7 @@ class _AgendaPantallaState extends State<AgendaPantalla> {
 
     if (_indiceSeleccionado == 2) {
       return PacientesPantalla(
-        visitas: controlador.visitas,
+        pacientes: controlador.pacientes,
         onActualizar: controlador.cargarAgenda,
       );
     }

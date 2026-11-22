@@ -8,6 +8,8 @@ public interface IAsignacionServicio
 
     Task<IEnumerable<PacienteAsignadoDto>> ListarPorTecnicoAsync(int tecnicoUsuarioId, PacienteAsignadoFiltroDto filtros);
 
+    Task<IEnumerable<PacienteAsignadoDto>> ListarPorMedicoAsync(int medicoUsuarioId, PacienteAsignadoFiltroDto filtros);
+
     Task<AsignacionResultadoDto?> AsignarAsync(AsignarPacienteSolicitudDto solicitud, int asignadoPorUsuarioId);
 
     Task<bool> FinalizarAsync(int asignacionPacienteId, FinalizarAsignacionSolicitudDto solicitud);

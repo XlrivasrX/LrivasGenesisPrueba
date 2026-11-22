@@ -88,17 +88,33 @@ public class VisitasController : ControllerBase
         return Ok(evidencias);
     }
 
-    [Authorize(Roles = "ROOT,DIRECTOR")]
+    [Authorize(Roles = "MEDICO,TECNICO")]
     [HttpPost]
     [ProducesResponseType(typeof(VisitaResultadoDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<VisitaResultadoDto>> Programar([FromBody] GuardarVisitaSolicitudDto solicitud)
     {
         var usuarioId = ObtenerUsuarioId();
         if (usuarioId is null)
         {
             return Unauthorized();
+        }
+
+        if (User.IsInRole("MEDICO"))
+        {
+            solicitud.MedicoResponsableUsuarioId = usuarioId.Value;
+        }
+        else if (User.IsInRole("TECNICO"))
+        {
+            solicitud.TecnicoUsuarioId = usuarioId.Value;
+        }
+
+        var conflicto = await _visitaServicio.ObtenerConflictoProgramacionAsync(solicitud);
+        if (conflicto is not null)
+        {
+            return Conflict(new { mensaje = conflicto });
         }
 
         var resultado = await _visitaServicio.ProgramarAsync(solicitud, usuarioId.Value);
@@ -119,6 +135,7 @@ public class VisitasController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Actualizar(int visitaId, [FromBody] GuardarVisitaSolicitudDto solicitud)
     {
         var visita = await _visitaServicio.ObtenerDetalleAsync(visitaId);
@@ -131,6 +148,13 @@ public class VisitasController : ControllerBase
         {
             return BadRequest(new { mensaje = "No se puede modificar una visita completada." });
         }
+
+        var conflicto = await _visitaServicio.ObtenerConflictoProgramacionAsync(solicitud, visitaId);
+        if (conflicto is not null)
+        {
+            return Conflict(new { mensaje = conflicto });
+        }
+
         var actualizada = await _visitaServicio.ActualizarAsync(visitaId, solicitud);
         if (!actualizada)
         {

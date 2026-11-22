@@ -45,6 +45,16 @@ public class AsignacionServicio : IAsignacionServicio
         });
     }
 
+    public async Task<IEnumerable<PacienteAsignadoDto>> ListarPorMedicoAsync(int medicoUsuarioId, PacienteAsignadoFiltroDto filtros)
+    {
+        return await _ejecutorProcedimientos.ConsultarListaAsync<PacienteAsignadoDto>(OpcionListarPorTecnico,new
+        {
+            MedicoResponsableUsuarioId = medicoUsuarioId,
+            filtros.Activo,
+            TextoBusqueda = LimpiarTexto(filtros.TextoBusqueda)
+        });
+    }
+
     public async Task<AsignacionResultadoDto?> AsignarAsync(AsignarPacienteSolicitudDto solicitud, int asignadoPorUsuarioId)
     {
         var paciente = await _pacienteServicio.ObtenerPorIdAsync(solicitud.PacienteId);

@@ -43,6 +43,7 @@ public class PropietariosController : ControllerBase
         return Ok(propietario);
     }
 
+    [Authorize(Roles = "MEDICO")]
     [HttpPost]
     [ProducesResponseType(typeof(PropietarioCreadoDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -64,6 +65,7 @@ public class PropietariosController : ControllerBase
             propietarioCreado);
     }
 
+    [Authorize(Roles = "MEDICO")]
     [HttpPut("{propietarioId:int}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

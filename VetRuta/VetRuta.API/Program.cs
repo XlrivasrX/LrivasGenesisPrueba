@@ -54,6 +54,8 @@ builder.Services.AddScoped<IVisitaServicio, VisitaServicio>();
 builder.Services.AddScoped<IPanelServicio, PanelServicio>();
 // Registra el servicio encargado de consultar y guardar la bitácora de auditoría.
 builder.Services.AddScoped<IAuditoriaServicio, AuditoriaServicio>();
+// Registra el servicio que administra la jerarquía entre médicos y técnicos.
+builder.Services.AddScoped<IJerarquiaServicio, JerarquiaServicio>();
 
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

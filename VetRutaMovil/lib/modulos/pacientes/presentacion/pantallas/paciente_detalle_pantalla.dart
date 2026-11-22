@@ -2,6 +2,8 @@ import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:vetruta_movil/core/red/configuracion_api.dart';
 import 'package:vetruta_movil/core/tema/colores_app.dart';
+import 'package:vetruta_movil/modulos/agenda/presentacion/pantallas/detalle_visita_pantalla.dart';
+import 'package:vetruta_movil/modulos/pacientes/datos/modelos/historial_clinico.dart';
 import 'package:vetruta_movil/modulos/pacientes/datos/modelos/paciente_detalle.dart';
 import 'package:vetruta_movil/modulos/pacientes/datos/servicios/paciente_servicio.dart';
 import 'package:vetruta_movil/modulos/pacientes/presentacion/controladores/paciente_detalle_controlador.dart';
@@ -175,6 +177,10 @@ class _PacienteDetalleContenido extends StatelessWidget {
                       '${paciente.longitud!.toStringAsFixed(6)}',
                 ),
             ],
+          ),
+          const SizedBox(height: 16),
+          _HistorialPaciente(
+            historial: controlador.historial,
           ),
           const SizedBox(height: 20),
         ],
@@ -416,5 +422,204 @@ class _DatoPaciente extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+class _HistorialPaciente extends StatelessWidget {
+  const _HistorialPaciente({
+    required this.historial,
+  });
+
+  final List<HistorialClinico> historial;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: ColoresApp.superficie,
+        border: Border.all(color: ColoresApp.borde),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Historial clínico',
+            style: TextStyle(
+              color: ColoresApp.azulOscuro,
+              fontSize: 19,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 14),
+          if (historial.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 18),
+              child: Center(
+                child: Text(
+                  'Este paciente todavía no tiene atenciones registradas.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: ColoresApp.textoSecundario,
+                  ),
+                ),
+              ),
+            )
+          else
+            ...historial.map(
+              (atencion) => Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _TarjetaHistorial(
+                  atencion: atencion,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TarjetaHistorial extends StatelessWidget {
+  const _TarjetaHistorial({
+    required this.atencion,
+  });
+
+  final HistorialClinico atencion;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: ColoresApp.verdePrincipal.withValues(alpha: 0.06),
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => DetalleVisitaPantalla(
+                visitaId: atencion.visitaId,
+              ),
+            ),
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: ColoresApp.verdePrincipal.withValues(
+                    alpha: 0.12,
+                  ),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(
+                  Icons.medical_services_outlined,
+                  color: ColoresApp.verdePrincipal,
+                ),
+              ),
+              const SizedBox(width: 13),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      atencion.nombreServicio,
+                      style: const TextStyle(
+                        color: ColoresApp.azulOscuro,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      _formatearFechaHora(atencion.fechaRegistro),
+                      style: const TextStyle(
+                        color: ColoresApp.textoSecundario,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Médico: ${atencion.nombreMedico}',
+                      style: const TextStyle(
+                        color: ColoresApp.azulOscuro,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      'Técnico: ${atencion.nombreTecnico}',
+                      style: const TextStyle(
+                        color: ColoresApp.textoSecundario,
+                      ),
+                    ),
+                    if (atencion.temperaturaCelsius != null)
+                      Text(
+                        'Temperatura: '
+                        '${atencion.temperaturaCelsius} °C',
+                        style: const TextStyle(
+                          color: ColoresApp.textoSecundario,
+                        ),
+                      ),
+                    if (atencion.cantidadEvidencias > 0) ...[
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.photo_camera_outlined,
+                            size: 18,
+                            color: ColoresApp.verdePrincipal,
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            '${atencion.cantidadEvidencias} '
+                            '${atencion.cantidadEvidencias == 1 ? 'evidencia' : 'evidencias'}',
+                            style: const TextStyle(
+                              color: ColoresApp.verdePrincipal,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.chevron_right,
+                color: ColoresApp.textoSecundario,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _formatearFechaHora(DateTime fecha) {
+    const meses = [
+      'ene',
+      'feb',
+      'mar',
+      'abr',
+      'may',
+      'jun',
+      'jul',
+      'ago',
+      'sep',
+      'oct',
+      'nov',
+      'dic',
+    ];
+
+    final hora = fecha.hour.toString().padLeft(2, '0');
+    final minuto = fecha.minute.toString().padLeft(2, '0');
+
+    return '${fecha.day} ${meses[fecha.month - 1]} ${fecha.year}'
+        ' · $hora:$minuto';
   }
 }
